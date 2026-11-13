@@ -20,7 +20,7 @@ where our paramedic graduates go, and how their training holds up in the field.<
 
 Programmes need to know what happens to their graduates. Today that is a paper or PDF survey that is hard to send, hard to fill and hard to analyse. This project turns it into a small, focused website: graduates sign in with a one-time email code, answer the programme's survey and update it later; the faculty sees the results as live, anonymised summaries.
 
-> **Where it stands.** The project is in planning; there is no application code yet. The decisions below are agreed, the original survey is in `docs/kaynak/`, and a list of open questions has gone to the teaching staff. Building starts once their answers are in. The banner shows the intended flow as a concept.
+> **Where it stands.** The project is in planning; there is no application code yet. The decisions below are agreed, the original survey has been collected, and a list of open questions has gone to the teaching staff. Building starts once their answers are in. The banner shows the intended flow as a concept.
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -51,7 +51,7 @@ flowchart LR
 | Step | Status |
 |---|---|
 | Scope and decisions | Done |
-| Original survey collected | Done (`docs/kaynak/`) |
+| Original survey collected | Done |
 | Questions to the teaching staff | Sent, waiting for answers |
 | Data model and RLS | Next |
 | Survey screens · email sign-in | Planned |
