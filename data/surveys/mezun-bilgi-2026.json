@@ -1,0 +1,471 @@
+{
+  "slug": "mezun-bilgi-2026",
+  "version": 1,
+  "title": {
+    "tr": "Mezun Bilgi Toplama Anketi",
+    "en": "Alumni Information Collection Survey"
+  },
+  "institution": {
+    "tr": "Fenerbahçe Üniversitesi · Sağlık Hizmetleri Meslek Yüksekokulu · İlk ve Acil Yardım Programı",
+    "en": "Fenerbahçe University · Vocational School of Health Services · First and Emergency Aid Programme"
+  },
+  "intro": {
+    "tr": "Bu anketin amacı, Fenerbahçe Üniversitesi İlk ve Acil Yardım Programı mezunlarının mesleki durumlarını izlemek ve programın sağladığı eğitimin ihtiyaçlarınıza ne düzeyde cevap verdiğini belirlemektir. Lütfen soruları içtenlikle cevaplayınız. Bilgileriniz yalnızca bölüm tarafından değerlendirilecek ve üçüncü kişilerle paylaşılmayacaktır. Katılımınız için teşekkür ederiz.",
+    "en": "The purpose of this survey is to track the career outcomes of graduates from Fenerbahçe University's First and Emergency Aid Programme and to evaluate how well the education meets your professional needs. Please answer honestly. Your information will only be reviewed by the department and will not be shared with third parties. Thank you for participating."
+  },
+  "sections": [
+    {
+      "id": "identity",
+      "title": { "tr": "1. Kimlik ve Mezuniyet", "en": "1. Identity & Graduation" },
+      "description": {
+        "tr": "Giriş bilgileriniz otomatik dolduruldu. Mezuniyet bilgilerinizi kontrol edin.",
+        "en": "Your sign-in details are prefilled. Please verify your graduation details."
+      }
+    },
+    {
+      "id": "employment",
+      "title": { "tr": "2. Çalışma Durumu ve Deneyim", "en": "2. Employment & Experience" },
+      "description": {
+        "tr": "Şu an çalışmıyorsanız ilgili sorularda \"Çalışmıyorum\" seçeneğini işaretleyebilirsiniz.",
+        "en": "If you are not currently working, select \"Not currently working\" in the job-related questions."
+      }
+    },
+    {
+      "id": "development",
+      "title": { "tr": "3. Gelişim, Eğitim ve Bağlar", "en": "3. Development, Education & Ties" },
+      "description": {
+        "tr": "Sertifikalar, DGS ile lisans tamamlama ve üniversiteyle iletişim tercihleriniz.",
+        "en": "Certificates, bachelor's completion via DGS, and your ongoing connection with the university."
+      }
+    },
+    {
+      "id": "feedback",
+      "title": { "tr": "4. Memnuniyet ve Değerlendirme", "en": "4. Satisfaction & Strengths/Weaknesses" },
+      "description": {
+        "tr": "Program memnuniyet puanınız ile güçlü ve geliştirilmesi gereken yönler.",
+        "en": "Your overall programme satisfaction score and perceived strengths and weaknesses."
+      }
+    },
+    {
+      "id": "evaluation",
+      "title": { "tr": "5. Eğitim Değerlendirme Tablosu ve Öneriler", "en": "5. Programme Evaluation & Suggestions" },
+      "description": {
+        "tr": "Her ifade için ön lisans eğitiminizi en iyi yansıtan düzeyi işaretleyin.",
+        "en": "For each statement, select the level that best reflects your associate degree education."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "q_full_name",
+      "section": "identity",
+      "type": "text",
+      "lockedFromProfile": "full_name",
+      "required": true,
+      "label": { "tr": "Ad-Soyad", "en": "Full Name" }
+    },
+    {
+      "id": "q_email",
+      "section": "identity",
+      "type": "text",
+      "lockedFromProfile": "email",
+      "required": true,
+      "label": { "tr": "E-posta Adresi", "en": "Email Address" }
+    },
+    {
+      "id": "q_student_number",
+      "section": "identity",
+      "type": "text",
+      "prefillFromProfile": "student_number",
+      "required": true,
+      "label": { "tr": "Öğrenci Numarası", "en": "Student Number" },
+      "placeholder": { "tr": "Örn. 210501042", "en": "e.g. 210501042" }
+    },
+    {
+      "id": "q_grad_year",
+      "section": "identity",
+      "type": "year",
+      "prefillFromProfile": "graduation_year",
+      "required": true,
+      "label": { "tr": "Mezuniyet Yılı", "en": "Graduation Year" }
+    },
+    {
+      "id": "q_grad_term",
+      "section": "identity",
+      "type": "single",
+      "prefillFromProfile": "graduation_term",
+      "required": true,
+      "label": { "tr": "Mezuniyet Dönemi", "en": "Graduation Term" },
+      "options": [
+        { "value": "guz", "tr": "Güz", "en": "Fall" },
+        { "value": "bahar", "tr": "Bahar", "en": "Spring" },
+        { "value": "yaz", "tr": "Yaz", "en": "Summer" }
+      ]
+    },
+    {
+      "id": "q_work_status",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Şu anki çalışma durumunuz", "en": "Current employment status" },
+      "options": [
+        { "value": "kamu_kadrolu", "tr": "Kamuda kadrolu olarak çalışıyorum", "en": "Public sector (permanent)" },
+        { "value": "kamu_sozlesmeli", "tr": "Kamuda sözleşmeli olarak çalışıyorum", "en": "Public sector (contracted)" },
+        { "value": "kamu_taseron", "tr": "Kamuda taşeron / hizmet alımıyla çalışıyorum", "en": "Public sector (subcontracted / service procurement)" },
+        { "value": "ozel_sektor", "tr": "Özel sektörde çalışıyorum", "en": "Working in the private sector" },
+        { "value": "kendi_sirketim", "tr": "Kendi kurduğum veya ortak olduğum şirket var (ör. özel ambulans, ilk yardım eğitim merkezi)", "en": "Own or co-own a company (e.g. private ambulance, first-aid center)" },
+        { "value": "alan_disi", "tr": "Çalıştığım alan eğitimimle ilgili değil", "en": "Working in a field unrelated to my education" },
+        { "value": "dgs_ogrenim", "tr": "Lisans tamamlama (DGS) / öğrenime devam ediyorum", "en": "Continuing education (DGS bachelor's completion)" },
+        { "value": "kpss_hazirlik", "tr": "KPSS / iş sınavlarına hazırlanıyorum", "en": "Preparing for KPSS / employment exams" },
+        { "value": "is_bulamadim", "tr": "Henüz iş bulamadım", "en": "Have not found a job yet" },
+        { "value": "askerlik_izin", "tr": "Askerlik / doğum izni vb. nedenlerle çalışmıyorum", "en": "Not working due to military service, maternity leave, etc." }
+      ]
+    },
+    {
+      "id": "q_job_title",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Görev / Unvan", "en": "Role / Job Title" },
+      "options": [
+        { "value": "paramedik_112", "tr": "Paramedik (112 Acil Sağlık Hizmetleri)", "en": "Paramedic (112 Emergency Health Services)" },
+        { "value": "acil_servis", "tr": "Acil servis (hastane)", "en": "Emergency department (hospital)" },
+        { "value": "hastane_diger", "tr": "Acil servis dışında hastanenin diğer bölümlerinde", "en": "Other hospital departments outside the emergency department" },
+        { "value": "ekip_sorumlusu", "tr": "Ekip / vardiya sorumlusu", "en": "Team / shift supervisor" },
+        { "value": "istasyon_sorumlusu", "tr": "İstasyon sorumlusu", "en": "Station supervisor" },
+        { "value": "ambulans_surucusu", "tr": "Ambulans sürücüsü (paramedik)", "en": "Ambulance driver (paramedic)" },
+        { "value": "ilk_yardim_egitmeni", "tr": "İlk yardım eğitmeni", "en": "First-aid instructor" },
+        { "value": "isyeri_saglik", "tr": "İş yeri sağlık personeli", "en": "Occupational health personnel" },
+        { "value": "saglik_disi", "tr": "Sağlık dışı bir alanda çalışıyorum", "en": "Working outside healthcare" },
+        { "value": "calismiyorum", "tr": "Çalışmıyorum", "en": "Not currently working" }
+      ]
+    },
+    {
+      "id": "q_institution",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Şu an çalışılan kurum", "en": "Current workplace / institution" },
+      "options": [
+        { "value": "112_istasyonu", "tr": "112 Acil Sağlık Hizmetleri istasyonu", "en": "112 Emergency Health Services station" },
+        { "value": "devlet_hastanesi", "tr": "Devlet hastanesi acil servisi", "en": "Public hospital emergency department" },
+        { "value": "universite_eah", "tr": "Üniversite / Eğitim-araştırma hastanesi acil servisi", "en": "University / Training & research hospital ED" },
+        { "value": "ozel_hastane", "tr": "Özel hastane", "en": "Private hospital" },
+        { "value": "ozel_ambulans", "tr": "Özel ambulans firması", "en": "Private ambulance company" },
+        { "value": "umke_afad", "tr": "UMKE / AFAD", "en": "UMKE / AFAD" },
+        { "value": "itfaiye_kurtarma", "tr": "İtfaiye / arama-kurtarma", "en": "Fire department / search & rescue" },
+        { "value": "isyeri_birimi", "tr": "İş yeri sağlık birimi (fabrika, OSB, havalimanı vb.)", "en": "Workplace health unit (factory, industrial zone, airport, etc.)" },
+        { "value": "etkinlik_stadyum", "tr": "Etkinlik / stadyum sağlık ekibi", "en": "Event / stadium medical team" },
+        { "value": "ilk_yardim_merkezi", "tr": "İlk yardım eğitim merkezi", "en": "First-aid training center" },
+        { "value": "akademi_universite", "tr": "Akademi / üniversite", "en": "Academy / university" },
+        { "value": "calismiyorum", "tr": "Çalışmıyorum", "en": "Not currently working" }
+      ]
+    },
+    {
+      "id": "q_prev_workplaces",
+      "section": "employment",
+      "type": "text_or_none",
+      "required": true,
+      "label": { "tr": "Daha önce çalıştığınız yerler", "en": "Previous workplaces" },
+      "placeholder": { "tr": "Örn. Özel X Hastanesi Acil Servisi (2024)", "en": "e.g. Private X Hospital ED (2024)" },
+      "noneLabel": { "tr": "Yok (ilk işim / henüz çalışmadım)", "en": "None (first job / have not worked yet)" }
+    },
+    {
+      "id": "q_unemployment_duration",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Mezun olduktan sonra işsizlik süreniz", "en": "Duration of unemployment after graduation" },
+      "options": [
+        { "value": "lt_6m", "tr": "6 aydan az", "en": "Less than 6 months" },
+        { "value": "6_12m", "tr": "6–12 ay arası", "en": "6–12 months" },
+        { "value": "12_18m", "tr": "12–18 ay arası", "en": "12–18 months" },
+        { "value": "gt_18m", "tr": "18 aydan fazla", "en": "More than 18 months" },
+        { "value": "working_before", "tr": "Mezuniyetten önce de sağlık alanında çalışıyordum", "en": "I was already working in healthcare before graduation" }
+      ]
+    },
+    {
+      "id": "q_how_found_first_job",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "İlk işinizi nasıl buldunuz?", "en": "How did you find your first job?" },
+      "options": [
+        { "value": "kpss", "tr": "KPSS / merkezi atama", "en": "KPSS / central placement" },
+        { "value": "ilan", "tr": "İş ilanı / kariyer portalı", "en": "Job posting / career portal" },
+        { "value": "staj", "tr": "Staj yaptığım kurum", "en": "Institution where I did my internship" },
+        { "value": "tanidik", "tr": "Tanıdık / mesleki referans", "en": "Personal or professional referral" },
+        { "value": "dogrudan", "tr": "Doğrudan başvuru", "en": "Direct application" },
+        { "value": "henuz_yok", "tr": "Henüz işe başlamadım", "en": "Have not started a job yet" }
+      ]
+    },
+    {
+      "id": "q_workplace_order",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Mezun olduktan sonra halen çalışmakta olduğunuz kurum, kaçıncı işyeridir?", "en": "Including previous roles, which workplace number is your current institution?" },
+      "options": [
+        { "value": "1", "tr": "1", "en": "1st" },
+        { "value": "2", "tr": "2", "en": "2nd" },
+        { "value": "3", "tr": "3", "en": "3rd" },
+        { "value": "4_plus", "tr": "4 ve daha fazla", "en": "4 or more" },
+        { "value": "calismiyorum", "tr": "Çalışmıyorum", "en": "Not currently working" }
+      ]
+    },
+    {
+      "id": "q_work_province",
+      "section": "employment",
+      "type": "province",
+      "required": true,
+      "label": { "tr": "Çalışmakta olduğunuz kurum/şirket hangi il sınırları içerisindedir?", "en": "In which province is your current workplace located?" }
+    },
+    {
+      "id": "q_total_experience",
+      "section": "employment",
+      "type": "duration",
+      "required": true,
+      "label": { "tr": "Meslekte toplam çalışma sürenizi belirtiniz", "en": "Total work duration in the profession" }
+    },
+    {
+      "id": "q_current_tenure",
+      "section": "employment",
+      "type": "duration",
+      "required": true,
+      "label": { "tr": "Mevcut kurumunuzda çalışma sürenizi belirtiniz", "en": "Work duration at your current institution" }
+    },
+    {
+      "id": "q_monthly_income",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Aylık net gelir aralığınız", "en": "Monthly net income range" },
+      "options": [
+        { "value": "none", "tr": "Çalışmıyorum / Gelirim yok", "en": "Not working / No income" },
+        { "value": "mw_or_less", "tr": "Asgari ücret ve altı", "en": "Minimum wage or below" },
+        { "value": "mw_1_1_5", "tr": "Asgari ücret – 1,5 katı", "en": "1x – 1.5x minimum wage" },
+        { "value": "mw_1_5_2", "tr": "1,5 – 2 katı", "en": "1.5x – 2x minimum wage" },
+        { "value": "mw_2_3", "tr": "2 – 3 katı", "en": "2x – 3x minimum wage" },
+        { "value": "mw_3_plus", "tr": "3 katı ve üzeri", "en": "3x minimum wage or above" },
+        { "value": "prefer_not", "tr": "Belirtmek istemiyorum", "en": "Prefer not to say" }
+      ]
+    },
+    {
+      "id": "q_continue_paramedic",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Paramedik olarak çalışmayı sürdürmeyi düşünüyor musunuz?", "en": "Do you plan to continue working as a paramedic?" },
+      "options": [
+        { "value": "evet", "tr": "Evet", "en": "Yes" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" },
+        { "value": "kararsizim", "tr": "Kararsızım", "en": "Undecided" }
+      ]
+    },
+    {
+      "id": "q_abroad_interest",
+      "section": "employment",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Yurt dışında çalışma deneyiminiz veya isteğiniz var mı?", "en": "Do you have work experience abroad or interest in working abroad?" },
+      "options": [
+        { "value": "worked_abroad", "tr": "Evet, yurt dışında çalıştım / çalışıyorum", "en": "Yes, I have worked / am working abroad" },
+        { "value": "want_abroad", "tr": "Evet, yurt dışında çalışmak istiyorum", "en": "Yes, I want to work abroad" },
+        { "value": "no", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_career_develop",
+      "section": "development",
+      "type": "multi",
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Mezun olduktan sonraki kariyerinizde geliştirmek istediğiniz yönleriniz nelerdir?", "en": "Which areas would you like to develop in your post-graduation career?" },
+      "hint": { "tr": "Birden fazla seçenek işaretleyebilirsiniz.", "en": "You may select multiple options." },
+      "options": [
+        { "value": "kuramsal", "tr": "Kuramsal Mesleki Bilgiler", "en": "Theoretical Professional Knowledge" },
+        { "value": "uygulamaci", "tr": "Uygulamacı Olmaya Yönelik Bilgiler", "en": "Practice-Oriented Skills & Knowledge" },
+        { "value": "yabanci_dil", "tr": "Yabancı Dil Bilgisi", "en": "Foreign Language Proficiency" },
+        { "value": "bilgisayar", "tr": "Alanla İlgili Bilgisayar Kullanımı", "en": "Field-Related Computer Skills" },
+        { "value": "iletisim", "tr": "İletişim Becerileri", "en": "Communication Skills" }
+      ]
+    },
+    {
+      "id": "q_certificates",
+      "section": "development",
+      "type": "text_or_none",
+      "required": true,
+      "label": {
+        "tr": "Bitirdiğiniz veya eğitimini sürdürdüğünüz kurs / eğitim / sertifika programları",
+        "en": "Completed or ongoing courses / training / certificate programmes"
+      },
+      "hint": {
+        "tr": "Örn: İlk yardım eğitmenliği, ileri yaşam desteği, temel yaşam desteği, travma yaşam desteği (ITLS / PHTLS), KBRN, ambulans sürüş eğitimi, arama-kurtarma, yenidoğan resüsitasyonu",
+        "en": "e.g. First-aid instructor, advanced life support, basic life support, trauma life support (ITLS / PHTLS), CBRN, ambulance driving, search & rescue, neonatal resuscitation"
+      },
+      "placeholder": { "tr": "Sertifika adlarını yazınız", "en": "Enter certificate names" },
+      "noneLabel": { "tr": "Yok", "en": "None" }
+    },
+    {
+      "id": "q_scientific_research",
+      "section": "development",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Mezuniyetten sonra bilimsel araştırmalarda / projelerde yer aldınız mı?", "en": "Have you participated in scientific research or projects after graduation?" },
+      "options": [
+        { "value": "evet", "tr": "Evet", "en": "Yes" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_dgs_status",
+      "section": "development",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "DGS ile lisans tamamlama durumunuz", "en": "Bachelor's completion via DGS (Vertical Transfer Exam) status" },
+      "options": [
+        { "value": "tamamladim", "tr": "Tamamladım", "en": "Completed" },
+        { "value": "devam", "tr": "Devam ediyorum", "en": "Currently studying" },
+        { "value": "planliyorum", "tr": "Planlıyorum", "en": "Planning to" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_keep_ties",
+      "section": "development",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Üniversite ile bağınızı devam ettirmek ister misiniz?", "en": "Would you like to maintain your connection with the university?" },
+      "options": [
+        { "value": "evet", "tr": "Evet", "en": "Yes" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_recommend_uni",
+      "section": "development",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Üniversiteyi önerme durumunuz", "en": "Would you recommend the university?" },
+      "options": [
+        { "value": "kesinlikle_evet", "tr": "Kesinlikle Evet", "en": "Definitely Yes" },
+        { "value": "evet", "tr": "Evet", "en": "Yes" },
+        { "value": "kararsizim", "tr": "Kararsızım", "en": "Undecided" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_alumni_reunion",
+      "section": "development",
+      "type": "single",
+      "required": true,
+      "label": { "tr": "Mezun buluşmalarına katılmak ister misiniz?", "en": "Would you like to attend alumni reunions?" },
+      "options": [
+        { "value": "evet", "tr": "Evet", "en": "Yes" },
+        { "value": "hayir", "tr": "Hayır", "en": "No" }
+      ]
+    },
+    {
+      "id": "q_satisfaction",
+      "section": "feedback",
+      "type": "scale",
+      "min": 0,
+      "max": 10,
+      "required": true,
+      "label": {
+        "tr": "Aldığınız ön lisans eğitim programından memnuniyetinizi 0 = hiç memnun değilim – 10 = çok memnunum düzeyleri arasında belirtiniz",
+        "en": "Please rate your satisfaction with your associate degree programme from 0 = not satisfied at all to 10 = very satisfied"
+      },
+      "minLabel": { "tr": "0 · Hiç", "en": "0 · Not at all" },
+      "maxLabel": { "tr": "10 · Çok", "en": "10 · Very much" }
+    },
+    {
+      "id": "q_strengths",
+      "section": "feedback",
+      "type": "multi",
+      "maxSelect": 3,
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Programınız mezunlarının güçlü yönleri nelerdir?", "en": "What are the strengths of your programme's graduates?" },
+      "hint": { "tr": "En fazla 3 seçenek işaretleyebilirsiniz.", "en": "You may select up to 3 options." },
+      "options": [
+        { "value": "s1", "tr": "Nitelikli bir eğitim veriliyor olması", "en": "High-quality education being provided" },
+        { "value": "s2", "tr": "Genç ve dinamik öğretim elemanı kadrosunun bulunması", "en": "Having a young and dynamic academic staff" },
+        { "value": "s3", "tr": "Kamu ve özel sektörde çalışabilecek yeterliğe sahip olmaları", "en": "Having the competence to work in public and private sectors" },
+        { "value": "s4", "tr": "İlgili ve alanlarında yeterli öğretim üyelerinden ders almış olmaları", "en": "Being taught by attentive and qualified faculty members" },
+        { "value": "s5", "tr": "Araştırma teknolojilerine hâkim olmaları", "en": "Proficiency in research technologies" },
+        { "value": "s6", "tr": "Alanında teorik bilgi ve pratik yapma bakımından başarılı olmaları", "en": "Success in theoretical knowledge and practical application in the field" },
+        { "value": "s7", "tr": "Teknolojik araç-gereçlerle desteklenen dersler almış olmaları", "en": "Having courses supported by modern technological tools and equipment" },
+        { "value": "s8", "tr": "Sosyal aktivitelerin yeterli olması", "en": "Sufficient social activities" },
+        { "value": "s9", "tr": "Araştırma, sorgulama ve sentez becerilerini geliştiren bir öğrenme ortamının olması", "en": "Learning environment fostering research, inquiry, and synthesis skills" }
+      ]
+    },
+    {
+      "id": "q_weaknesses",
+      "section": "feedback",
+      "type": "multi",
+      "maxSelect": 3,
+      "required": true,
+      "allowOther": true,
+      "label": { "tr": "Programınız mezunlarının zayıf yönleri nelerdir?", "en": "What are the weaknesses of your programme's graduates?" },
+      "hint": { "tr": "En fazla 3 seçenek işaretleyebilirsiniz.", "en": "You may select up to 3 options." },
+      "options": [
+        { "value": "w1", "tr": "Uygulama ve laboratuvar becerilerinin yetersiz olması", "en": "Insufficient practical and laboratory skills" },
+        { "value": "w2", "tr": "Ezbere dayalı bir eğitim almış olmaları", "en": "Rote-memorization based education" },
+        { "value": "w3", "tr": "Mezun takibini ve iletişimini sağlayacak bir sistemin olmayışı", "en": "Lack of a system for alumni tracking and communication" },
+        { "value": "w4", "tr": "Sınav odaklı çalışmaktan dolayı edinilen bilgilerin çabuk unutulması", "en": "Rapid forgetting of knowledge due to exam-focused study" },
+        { "value": "w5", "tr": "Bilgi ve becerilerin mevcut koşullara uyarlanmasında zorluk yaşanması", "en": "Difficulty adapting knowledge and skills to current conditions" },
+        { "value": "w6", "tr": "Yabancı dil bilgisinin yetersiz olması", "en": "Insufficient foreign language proficiency" },
+        { "value": "w7", "tr": "Mesleğe uyumla ilgili sorunların yaşanması", "en": "Difficulties adapting to the profession" },
+        { "value": "w8", "tr": "Kuramsal bilgileri uygulamaya taşımada zorluk yaşanması", "en": "Difficulty transferring theoretical knowledge into practice" },
+        { "value": "w9", "tr": "Alanla ilgili kuramsal bilgilerin yetersiz olması", "en": "Insufficient theoretical knowledge in the field" },
+        { "value": "w10", "tr": "İletişim becerilerinin zayıf olması", "en": "Weak communication skills" },
+        { "value": "w11", "tr": "Araştırma ve sorgulama becerilerinin yetersizliği", "en": "Insufficient research and inquiry skills" }
+      ]
+    },
+    {
+      "id": "q_program_matrix",
+      "section": "evaluation",
+      "type": "matrix",
+      "required": true,
+      "label": { "tr": "Ön Lisans Eğitiminin Değerlendirilmesi", "en": "Evaluation of Associate Degree Education" },
+      "columns": [
+        { "value": "1", "tr": "Kesinlikle katılmıyorum", "en": "Strongly disagree" },
+        { "value": "2", "tr": "Katılmıyorum", "en": "Disagree" },
+        { "value": "3", "tr": "Kararsızım", "en": "Undecided" },
+        { "value": "4", "tr": "Katılıyorum", "en": "Agree" },
+        { "value": "5", "tr": "Kesinlikle katılıyorum", "en": "Strongly agree" }
+      ],
+      "rows": [
+        { "id": "m1", "tr": "Aldığım ön lisans eğitimi işimle ilgilidir.", "en": "My associate degree education is relevant to my job." },
+        { "id": "m2", "tr": "Eğitimin, beni profesyonel yaşama hazırladığını düşünüyorum.", "en": "I think my education prepared me for professional life." },
+        { "id": "m3", "tr": "İş bulmada veya sektör değiştirmede zorlukla karşılaşmadım.", "en": "I did not face difficulty finding a job or changing sectors." },
+        { "id": "m4", "tr": "İlk ve Acil Yardım Programının akademik kalitesinin yeterli olduğuna inanıyorum.", "en": "I believe the academic quality of the First and Emergency Aid Programme is sufficient." },
+        { "id": "m5", "tr": "Aldığım eğitim toplumsal dinamikleri anlamamda yardımcı oldu.", "en": "The education I received helped me understand social dynamics." },
+        { "id": "m6", "tr": "Ön lisans eğitimim sırasında meslek yaşamına yönelik önerilerde bulunuldu.", "en": "Career guidance for professional life was offered during my associate degree." },
+        { "id": "m7", "tr": "Aldığım eğitim kapsamında yazılı ve sözlü iletişim becerilerimi geliştirdim.", "en": "I developed my written and oral communication skills during my education." },
+        { "id": "m8", "tr": "Ön lisans eğitimim sırasında, takım çalışması yapabilme becerisi kazandım.", "en": "I gained teamwork skills during my associate degree education." },
+        { "id": "m9", "tr": "Ön lisans eğitiminin, bireysel/bağımsız çalışma becerilerimi geliştirdiğini düşünüyorum.", "en": "I think my associate degree education improved my independent study skills." },
+        { "id": "m10", "tr": "Ön lisans eğitimim sırasında araştırma yapma yetisi kazandığıma inanıyorum.", "en": "I believe I gained research capability during my associate degree." },
+        { "id": "m11", "tr": "Almış olduğum ön lisans eğitiminin beni ileri akademik çalışmalara (DGS / lisans tamamlama / lisansüstü) yeteri kadar hazırladığını düşünüyorum.", "en": "I think my associate degree education adequately prepared me for further academic studies (DGS / bachelor's completion / graduate)." },
+        { "id": "m12", "tr": "Eğitimim sırasında, mesleki ve etik sorumluluk bilinci kazandım.", "en": "I gained professional and ethical responsibility awareness during my education." },
+        { "id": "m13", "tr": "İlk ve Acil Yardım Programını bu mesleğe ilgi duyanlara öneririm.", "en": "I would recommend the First and Emergency Aid Programme to those interested in this profession." }
+      ]
+    },
+    {
+      "id": "q_suggestions",
+      "section": "evaluation",
+      "type": "textarea",
+      "required": false,
+      "label": { "tr": "Programa önerileriniz", "en": "Your suggestions for the programme" },
+      "placeholder": {
+        "tr": "Ders içerikleri, uygulama saatleri, mezun iletişimi vb. hakkındaki görüşlerinizi yazabilirsiniz…",
+        "en": "Share your feedback on courses, clinical/field practice, alumni communication, etc.…"
+      }
+    }
+  ]
+}

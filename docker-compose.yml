@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mezun}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mezun_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-mezun_takip}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mezun} -d ${POSTGRES_DB:-mezun_takip}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3474:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mezun}:${POSTGRES_PASSWORD:-mezun_change_me}@postgres:5432/${POSTGRES_DB:-mezun_takip}
+      SESSION_SECRET: ${SESSION_SECRET}
+      APP_BASE_URL: ${APP_BASE_URL:-http://127.0.0.1:3474}
+      MAIL_FROM: ${MAIL_FROM:-FBÜ İlk ve Acil Yardım <noreply@localhost>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      ADMIN_OWNER_EMAIL: ${ADMIN_OWNER_EMAIL:-admin@fbu.edu.tr}
+      ADMIN_OWNER_NAME: ${ADMIN_OWNER_NAME:-Program Başkanı}
+      ADMIN_OWNER_PASSWORD: ${ADMIN_OWNER_PASSWORD:-ChangeMe123!}
+
+  # İsteğe bağlı Cloudflare Tunnel (başlatmak için: docker compose --profile tunnel up -d)
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+
+volumes:
+  pg_data:

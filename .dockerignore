@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.env
+.env.*
+assets-src
+coverage
+docs/kaynak
+tests
