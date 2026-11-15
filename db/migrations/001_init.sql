@@ -119,6 +119,16 @@ CREATE TABLE IF NOT EXISTS reminder_logs (
   sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Yönetici girişi başarısız deneme kayıtları (kaba kuvvet koruması)
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  ip TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts (LOWER(email), created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts (ip, created_at DESC);
+
 -- Varsayılan uygulama ayarları (KVKK ve whitelist placeholder olarak başlar)
 INSERT INTO app_settings (key, value)
 VALUES

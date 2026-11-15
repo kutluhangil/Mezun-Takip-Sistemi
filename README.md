@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="docs/media/hero.svg" alt="Graduate Tracking concept — a graduate signs in with an email code and answers a survey question while the faculty view updates anonymised results" width="100%">
+<img src="docs/media/hero.svg" alt="Graduate Tracking — a graduate signs in with an email code and answers a survey question while the faculty view updates anonymised results" width="100%">
 
 <p>
-  <img alt="Status" src="https://img.shields.io/badge/status-in%20planning-c96f4a?style=for-the-badge&labelColor=6b3f2c">
-  <img alt="Stack" src="https://img.shields.io/badge/planned-Vercel%20%2B%20Supabase-e8b04a?style=for-the-badge&labelColor=6b3f2c">
-  <img alt="Sign-in" src="https://img.shields.io/badge/sign--in-email%20code-5f8f7a?style=for-the-badge&labelColor=6b3f2c">
+  <img alt="Status" src="https://img.shields.io/badge/status-pre--launch-c96f4a?style=for-the-badge&labelColor=6b3f2c">
+  <img alt="Stack" src="https://img.shields.io/badge/Next.js%2016%20%2B%20Neon%20%2B%20Vercel-e8b04a?style=for-the-badge&labelColor=6b3f2c">
+  <img alt="Languages" src="https://img.shields.io/badge/TR%20%2B%20EN-5f8f7a?style=for-the-badge&labelColor=6b3f2c">
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-c96f4a?style=for-the-badge&labelColor=6b3f2c">
 </p>
 
@@ -16,55 +16,71 @@ where our paramedic graduates go, and how their training holds up in the field.<
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
-## What it will be
+## What it is
 
-Programmes need to know what happens to their graduates. Today that is a paper or PDF survey that is hard to send, hard to fill and hard to analyse. This project turns it into a small, focused website: graduates sign in with a one-time email code, answer the programme's survey and update it later; the faculty sees the results as live, anonymised summaries.
+Programmes need to know what happens to their graduates. Today that is a paper or PDF survey that is hard to send, hard to fill and hard to analyse. This site replaces it: graduates sign in with a one-time email code, answer a 30-question survey in Turkish or English, and can come back every period to answer again. The teaching staff sign in to an admin area with charts, cross-tabs and four export formats.
 
-> **Where it stands.** The project is in planning; there is no application code yet. The decisions below are agreed, the original survey has been collected, and a list of open questions has gone to the teaching staff. Building starts once their answers are in. The banner shows the intended flow as a concept.
+> **Where it stands.** The application is built and deployed on Vercel with a Neon database. Before it opens to graduates it still needs real admin credentials, an outgoing mail account, the official KVKK notice and the graduate list from the teaching staff. See [`docs/KALAN-ISLER-DEVIR.md`](docs/KALAN-ISLER-DEVIR.md). The banner above is a concept illustration with placeholder numbers.
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
-## Decisions so far
+## What is in it
 
 | | |
 |---|---|
-| **Sign-in** | A one-time code sent by email. No passwords to forget. |
-| **The survey** | The programme's existing questionnaire, reproduced word for word so results stay comparable with earlier years. |
-| **Stack** | A web app on Vercel with Supabase for auth and data, protected by row-level security. |
-| **Look** | A warm clay palette, calm and readable on a phone. |
-| **Faculty view** | Aggregated, anonymised results with charts and CSV export. |
-| **Privacy** | Only what the survey asks is stored, and graduates can see and update their own answers. |
+| **Sign-in** | Full name, student number, personal email, graduation year and term, then a 6-digit code by email (valid 10 minutes, 5 wrong tries, throttled per email) and a KVKK consent box. No passwords for graduates. |
+| **The survey** | 30 questions in 5 sections, Turkish and English. Drafts save automatically; a submitted answer is never edited or deleted. Each answer belongs to a period (for example `2026-Guz`), so the same graduate can answer again later and the two can be compared. |
+| **Admin area** | Overview with KPIs, per-question charts, a two-question cross-tab, a response browser, a graduate list (CSV/Excel import, fix an email, reminders) and settings. Roles: `owner` can change things, `viewer` can only read. |
+| **Reports** | Excel (`.xlsx`), CSV with a UTF-8 BOM for SPSS, Word (`.docx`) and a PDF with charts, in both languages. |
+| **Look** | Ivory-paper light theme, clay accent, serif headings, engraved illustrations. Built mobile first with 44 px touch targets. |
+| **Safety** | Signed HTTP-only cookies, `scrypt` password hashes, admin login lockout after 5 failures in 15 minutes, role checks on every write endpoint. |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
-## Planned flow
+## How it fits together
 
 ```mermaid
 flowchart LR
   G[Graduate] --> OTP[Email code sign-in]
-  OTP --> S[Survey · word for word<br/>save and resume]
-  S --> DB[(Supabase · RLS<br/>own answers only)]
-  DB --> AGG[Anonymised aggregates]
-  AGG --> F[Faculty dashboard<br/>charts · CSV]
+  OTP --> S[Survey · TR / EN<br/>auto-saved draft]
+  S --> DB[(Neon PostgreSQL<br/>append-only responses)]
+  DB --> AGG[Aggregates · filters · cross-tab]
+  AGG --> F[Admin dashboard]
+  F --> X[xlsx · csv · docx · pdf]
 ```
 
-| Step | Status |
+Next.js 16 (App Router) with React 19, TypeScript and Tailwind CSS v4. Data goes through `pg` (`src/lib/db.ts` runs `db/migrations/001_init.sql` and syncs the survey definition on first use). Mail goes through Resend or SMTP (`src/lib/mail.ts`); without either it logs to the console in development. The survey itself lives in `data/surveys/mezun-bilgi-2026.json`.
+
+## Run it locally
+
+```bash
+npm install
+cp .env.example .env     # DATABASE_URL, SESSION_SECRET, admin owner, mail settings
+npm run dev              # http://localhost:3000
+npm test                 # Vitest
+npm run lint             # tsc --noEmit
+```
+
+A PostgreSQL 16 database is required. `docker-compose.yml` and the `Dockerfile` run the whole stack on a home server instead; see [`docs/DEPLOY-MACMINI.md`](docs/DEPLOY-MACMINI.md). In development the sign-in page shows a temporary preview button, and the code is returned in the API response when no mail provider is set. Neither exists in production builds.
+
+## Project notes
+
+| File | What is in it |
 |---|---|
-| Scope and decisions | Done |
-| Original survey collected | Done |
-| Questions to the teaching staff | Sent, waiting for answers |
-| Data model and RLS | Next |
-| Survey screens · email sign-in | Planned |
-| Faculty dashboard and export | Planned |
+| [`docs/PLAN.md`](docs/PLAN.md) | Scope, decisions and phases |
+| [`docs/DEVIR-NOTU.md`](docs/DEVIR-NOTU.md) | Full hand-over: what was built and why |
+| [`docs/KALAN-ISLER-DEVIR.md`](docs/KALAN-ISLER-DEVIR.md) | What is still open |
+| [`docs/acik-sorular.md`](docs/acik-sorular.md) | Questions waiting on the teaching staff |
+| [`docs/GORSEL.md`](docs/GORSEL.md) | Illustration prompts |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
 ## Türkçe özet
 
-**Mezun Takip Sistemi**, Fenerbahçe Üniversitesi İlk ve Acil Yardım Programı mezunlarının nerede çalıştığını, aldıkları eğitimin işlerine ne kadar yaradığını ve programın neyi değiştirmesi gerektiğini öğrenmek için hazırlanan bir anket sitesi. Mezunlar e-postaya gelen tek kullanımlık kodla giriş yapıp programın mevcut anketini birebir dolduracak ve sonra güncelleyebilecek; bölüm sonuçları anonim özet grafikler olarak görecek. Kararlar: e-posta koduyla giriş, Vercel + Supabase, kil rengi tema, anketin aynen korunması. Proje planlama aşamasında; öğretmenlere gönderilen soruların cevapları bekleniyor.
+**Mezun Takip Sistemi**, Fenerbahçe Üniversitesi İlk ve Acil Yardım Programı mezunlarının nerede çalıştığını, aldıkları eğitimin işlerine ne kadar yaradığını ve programın neyi değiştirmesi gerektiğini öğrenmek için hazırlanan bir anket sitesi. Mezunlar ad-soyad, öğrenci numarası ve kişisel e-postalarına gelen 6 haneli kodla giriş yapıp Türkçe veya İngilizce 30 soruluk anketi doldurur; gönderilen yanıtlar hiçbir zaman silinmez ve her dönem yeniden doldurulabilir. Öğretmenler yönetici panelinde grafikleri, iki soruluk çapraz tabloyu ve yanıtları görür; sonuçları Excel, CSV, Word ve PDF olarak indirir. Altyapı Next.js 16, Neon PostgreSQL ve Vercel. Canlıya açılmadan önce gerçek yönetici hesabı, e-posta hesabı, resmi KVKK metni ve mezun listesi bekleniyor.
 
 <div align="center">
 <br>
 <a href="https://github.com/kutluhangil"><img src="docs/media/signature.svg" width="100%" alt="Built by kutluhangil"></a>
-<sub>GPL-3.0 · in planning · the banner is a concept with placeholder questions and numbers.</sub>
+<sub>GPL-3.0 · pre-launch · the banner is a concept with placeholder questions and numbers.</sub>
 </div>

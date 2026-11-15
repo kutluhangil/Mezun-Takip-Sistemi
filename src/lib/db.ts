@@ -76,16 +76,22 @@ async function runBootstrap(): Promise<void> {
   // Hiç yönetici yoksa env değerleriyle ilk program başkanı (owner) hesabını aç
   const adminCount = await pool.query<{ c: string }>('SELECT COUNT(*)::text AS c FROM admins')
   if (Number(adminCount.rows[0]?.c ?? 0) === 0) {
-    const email = (process.env.ADMIN_OWNER_EMAIL || 'admin@fbu.edu.tr').trim().toLowerCase()
-    const fullName = (process.env.ADMIN_OWNER_NAME || 'Program Başkanı').trim()
-    const rawPassword = process.env.ADMIN_OWNER_PASSWORD || 'ChangeMe123!'
-    const hash = hashPasswordSync(rawPassword)
-    await pool.query(
-      `INSERT INTO admins (email, full_name, role, password_hash)
-       VALUES ($1, $2, 'owner', $3)
-       ON CONFLICT (email) DO NOTHING`,
-      [email, fullName, hash]
-    )
+    const isProd = process.env.NODE_ENV === 'production'
+    const envEmail = process.env.ADMIN_OWNER_EMAIL?.trim()
+    const envPassword = process.env.ADMIN_OWNER_PASSWORD
+    if (isProd && (!envEmail || !envPassword)) {
+      console.error('[db] ADMIN_OWNER_EMAIL / ADMIN_OWNER_PASSWORD tanımlı değil; üretimde varsayılan yönetici oluşturulmadı.')
+    } else {
+      const email = (envEmail || 'admin@fbu.edu.tr').toLowerCase()
+      const fullName = (process.env.ADMIN_OWNER_NAME || 'Program Başkanı').trim()
+      const hash = hashPasswordSync(envPassword || 'ChangeMe123!')
+      await pool.query(
+        `INSERT INTO admins (email, full_name, role, password_hash)
+         VALUES ($1, $2, 'owner', $3)
+         ON CONFLICT (email) DO NOTHING`,
+        [email, fullName, hash]
+      )
+    }
   }
 }
 

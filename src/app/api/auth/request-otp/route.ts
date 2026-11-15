@@ -107,6 +107,22 @@ export async function POST(req: Request) {
       )
     }
 
+    const hourly = await query<{ c: string }>(
+      `SELECT COUNT(*)::text AS c FROM otp_codes
+       WHERE LOWER(email) = $1 AND created_at > NOW() - INTERVAL '1 hour'`,
+      [email]
+    )
+    if (Number(hourly.rows[0]?.c ?? 0) >= 8) {
+      return NextResponse.json(
+        {
+          error: isEn
+            ? 'Too many code requests for this email. Please try again in an hour.'
+            : 'Bu e-posta için çok fazla kod istendi. Lütfen bir saat sonra tekrar deneyin.',
+        },
+        { status: 429 }
+      )
+    }
+
     const code = generateOtpCode()
     const codeHash = hashOtp(email, code)
     const pendingProfile = {

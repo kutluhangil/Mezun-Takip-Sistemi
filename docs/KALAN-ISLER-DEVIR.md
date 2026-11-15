@@ -2,6 +2,19 @@
 
 > **Bağlam:** Projenin tam mimarisi ve bugüne kadar yapılanlar için önce [DEVIR-NOTU.md](DEVIR-NOTU.md) dosyasına bak. Bu dosya yalnızca **eksik, yarım kalan veya canlıya tam açmadan önce yapılması gereken** işleri içerir.
 
+## 0. Akşam turunda tamamlananlar (commit edilmedi, deploy edilmedi)
+
+- **Admin giriş kilidi:** `src/lib/login-throttle.ts` + `login_attempts` tablosu (`001_init.sql`). Aynı e-posta için 15 dakikada 5, aynı IP için 20 başarısız denemede `429`. Yerelde doğrulandı (6. deneme `429`).
+- **OTP saatlik sınır:** `request-otp` aynı e-posta için saatte en fazla 8 kod (spam ve e-posta kotası koruması).
+- **Üretimde varsayılan admin yok:** `src/lib/db.ts` artık production'da `ADMIN_OWNER_EMAIL` ve `ADMIN_OWNER_PASSWORD` tanımlı değilse yönetici oluşturmaz.
+- **`src/app/error.tsx`** eklendi (TR/EN, `offline` illüstrasyonu, "Tekrar dene").
+- **README** gerçek duruma göre yeniden yazıldı; `docs/media/logo3.png` kopyası silindi.
+- **Temizlik:** Neon'daki test mezunu ve OTP kayıtları silindi (`graduates`, `responses`, `otp_codes`, `login_attempts` boş; `admins` = 1).
+- **Uçtan uca doğrulama (yerel, Neon):** OTP isteği, yanlış kod `400`, doğru kod ile giriş, `/anket` ve taslak `200`, oturumsuz `/api/admin/dashboard` ve `/export` `401`.
+
+> [!WARNING]
+> **Neon'daki varsayılan yönetici hâlâ duruyor:** `admin@fbu.edu.tr` / `ChangeMe123!`. Canlı adres şu an Vercel Deployment Protection arkasında, ama korumayı kapatmadan önce bu hesap gerçek bilgilerle değiştirilmeli (aşağıdaki bölüm 1).
+
 ---
 
 ## 1. Acil Güvenlik ve Yönetici Ayarları (Canlı URL İçin Zorunlu)
@@ -64,6 +77,6 @@ Aşağıdaki geçici önizleme parçaları `NODE_ENV === 'production'` altında 
 
 ## 6. Küçük Temizlik ve Dokümantasyon
 
-- `docs/media/logo3.png` dosyası `public/brand/fbu-logo.png` ile birebir kopyadır; başka yerde referansı yoksa silinebilir.
-- `README.md` hâlâ ilk planlama ("in planning") metnindedir; sistem son halini alınca güncellenebilir (`readme-tema` skill'i kullanılabilir).
-- `src/app/error.tsx` (özel hata sınırı sayfası) henüz yok; istenirse `not-found.tsx` benzeri sade bir `error.tsx` eklenebilir.
+- ~~`docs/media/logo3.png` kopya~~ silindi, ~~README~~ güncellendi, ~~`error.tsx`~~ eklendi (bölüm 0).
+- Hero (`docs/media/hero.svg`) hâlâ "concept" afişi (örnek sorular ve sayılar). İstenirse `readme-tema` skill'iyle gerçek ürün ekranına göre yeniden üretilebilir.
+- Demo butonları kullanılırsa Neon'a "Demo Mezun" satırı eklenir; canlı açılıştan önce `graduates` tablosunda `full_name LIKE 'Demo Mezun%'` satırlarını sil.
