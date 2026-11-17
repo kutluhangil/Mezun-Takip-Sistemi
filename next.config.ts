@@ -32,7 +32,9 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   serverExternalPackages: ['pdfkit', 'exceljs', 'nodemailer', 'pg', 'dejavu-fonts-ttf'],
   outputFileTracingIncludes: {
-    '/**/*': ['./db/migrations/**/*', './public/brand/fbu-logo.png', './node_modules/dejavu-fonts-ttf/ttf/**/*'],
+    '/**/*': ['./db/migrations/**/*'],
+    // Rapor logosu ve PDF fontu yalnız export fonksiyonunda gerekir
+    '/api/admin/export': ['./public/brand/fbu-logo.png', './node_modules/dejavu-fonts-ttf/ttf/**/*'],
   },
   async headers() {
     return [

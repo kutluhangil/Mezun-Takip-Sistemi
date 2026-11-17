@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { cache } from 'react'
 import { query } from './db'
 import type {
   AdminUser,
@@ -63,7 +64,8 @@ function mapSurveyRow(row: {
   }
 }
 
-export async function getActiveSurvey(): Promise<SurveyRow> {
+/** İstek başına bir kez okunur (layout + sayfa + yardımcılar). */
+export const getActiveSurvey = cache(async (): Promise<SurveyRow> => {
   const res = await query<{
     id: string
     slug: string
@@ -95,7 +97,7 @@ export async function getActiveSurvey(): Promise<SurveyRow> {
     active_period: '2026-Guz',
     cooldown_days: 180,
   }
-}
+})
 
 export async function getAppSettings(): Promise<AppSettingsBundle> {
   const res = await query<{ key: string; value: unknown }>(

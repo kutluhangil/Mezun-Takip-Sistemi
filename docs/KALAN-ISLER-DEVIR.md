@@ -18,7 +18,8 @@
 
 ## 2. Gemini görselleri — tamam
 
-- 10 görsel × açık/koyu `public/art/` altında (`npm run art`). Yenisi gerekirse aynı adla `assets-src/illustrations/` içine koyup komutu tekrar çalıştırmak yeterli.
+- 11 görsel × açık/koyu `public/art/` altında: 9 sayfa gravürü + `footer` bandı + sitenin `logo`su (FBÜ logosu yerine; sekme ikonu `src/app/icon.png` ondan üretildi). Resmi raporlarda (PDF/DOCX) FBÜ logosu bilerek kalıyor.
+- Yenisi gerekirse aynı adla `assets-src/illustrations/` içine koyup `npm run art`.
 
 ## 3. Öğretmenlerden beklenen (değişmedi)
 

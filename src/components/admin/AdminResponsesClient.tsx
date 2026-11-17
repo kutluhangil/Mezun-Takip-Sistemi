@@ -4,15 +4,14 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 import { formatAnswerLabel } from '@/lib/aggregate'
 import { t } from '@/lib/i18n'
-import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import type { SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
 import { Art } from '@/components/ui/Art'
 import { PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { FilterBar, fmtDateTime, useSurveyFilters } from './kit'
 
 const PAGE = 30
 
-export function AdminResponsesClient({ admin, survey, responses }: { admin: AdminUser; survey: SurveyRow; responses: SubmittedResponseItem[] }) {
+export function AdminResponsesClient({ survey, responses }: { survey: SurveyRow; responses: SubmittedResponseItem[] }) {
   const { filters, setFilters, filtered, summary, lang } = useSurveyFilters(survey, responses, 0)
   const [q, setQ] = useState('')
   const [limit, setLimit] = useState(PAGE)
@@ -28,7 +27,7 @@ export function AdminResponsesClient({ admin, survey, responses }: { admin: Admi
   }, [filtered, q])
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader kicker={<span className="tabular">{t(lang, 'ana.kicker', { n: rows.length })}</span>} title={t(lang, 'resp.title')} lede={t(lang, 'resp.lede')} />
 
       <div className="mt-8 grid gap-3">
@@ -83,6 +82,6 @@ export function AdminResponsesClient({ admin, survey, responses }: { admin: Admi
           </button>
         </div>
       )}
-    </AdminShell>
+    </>
   )
 }

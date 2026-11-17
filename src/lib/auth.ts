@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 import { hashPassword } from '../../db/core.mjs'
 import type { AdminUser, GraduateRecord } from './survey-types'
 import { query } from './db'
@@ -136,7 +137,8 @@ export async function getGraduateSession(): Promise<GraduateRecord | null> {
   return res.rows[0] ?? null
 }
 
-export async function getAdminSession(): Promise<AdminUser | null> {
+/** İstek başına bir kez: panel layout'u ve sayfa aynı sorguyu paylaşır. */
+export const getAdminSession = cache(async (): Promise<AdminUser | null> => {
   const parsed = await readToken(ADMIN_COOKIE, 'admin')
   if (!parsed) return null
   const res = await query<AdminUser>(
@@ -145,7 +147,7 @@ export async function getAdminSession(): Promise<AdminUser | null> {
     [parsed.sub, parsed.v]
   )
   return res.rows[0] ?? null
-}
+})
 
 /** Çıkışta tüm cihazlardaki oturumları düşürmek için sürümü artırır. */
 export async function revokeSessions(kind: 'admin' | 'graduate', id: string): Promise<void> {
@@ -158,6 +160,7 @@ export async function getServerLang(): Promise<'tr' | 'en'> {
 }
 
 export async function getServerTheme(): Promise<'light' | 'dark' | 'system'> {
+  // Seçim yapılmadıysa site her zaman açık temada açılır; "Sistem" yalnız elle seçilince
   const v = (await cookies()).get(THEME_COOKIE)?.value
-  return v === 'light' || v === 'dark' ? v : 'system'
+  return v === 'dark' || v === 'system' ? v : 'light'
 }

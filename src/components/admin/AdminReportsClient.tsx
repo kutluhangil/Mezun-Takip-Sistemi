@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { Download, FileSpreadsheet, FileText, FileType2, Table2 } from 'lucide-react'
 import { t } from '@/lib/i18n'
-import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import type { SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
 import { btn, Card, PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { FilterBar, useSurveyFilters } from './kit'
 
 const FORMATS = [
@@ -16,12 +15,10 @@ const FORMATS = [
 ] as const
 
 export function AdminReportsClient({
-  admin,
   survey,
   responses,
   totalGraduates,
 }: {
-  admin: AdminUser
   survey: SurveyRow
   responses: SubmittedResponseItem[]
   totalGraduates: number
@@ -43,7 +40,7 @@ export function AdminReportsClient({
   }
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader kicker={<span className="tabular">{t(lang, 'ana.kicker', { n: filtered.length })}</span>} title={t(lang, 'rep.title')} lede={t(lang, 'rep.subtitle')} />
       <div className="mt-8"><FilterBar survey={survey} summary={summary} filters={filters} onChange={setFilters} /></div>
 
@@ -75,6 +72,6 @@ export function AdminReportsClient({
           )
         })}
       </ul>
-    </AdminShell>
+    </>
   )
 }

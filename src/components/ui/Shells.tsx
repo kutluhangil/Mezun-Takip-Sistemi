@@ -50,7 +50,7 @@ export function PublicShell({
           ) : undefined
         }
       />
-      <main className={`flex-1 ${focus ? 'pb-36' : 'pb-[calc(62px+env(safe-area-inset-bottom))] md:pb-0'}`}>{children}</main>
+      <main className={`flex-1 ${focus ? 'pb-36' : ''}`}>{children}</main>
       {!focus && <SiteFooter />}
       {!focus && <MobileNav items={items} />}
     </div>

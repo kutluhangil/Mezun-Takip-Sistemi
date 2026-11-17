@@ -102,9 +102,11 @@ async function convert(file) {
   let hasAlpha = false
   for (let o = 3; o < data.length; o += 4 * 97) if (data[o] < 250) { hasAlpha = true; break }
   const cleared = hasAlpha ? 0 : clearBackground(data, info.width, info.height, dark)
-  const out = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
-    .trim({ threshold: 1 })
-    .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true })
+  // Kırpılmış hâli geniş bir şeritse (footer, süs) uzun kenar 2048'e kadar korunur, yoksa geniş ekranda bulanıklaşır
+  const trimmed = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).trim({ threshold: 1 }).png().toBuffer({ resolveWithObject: true })
+  const maxSide = trimmed.info.width / trimmed.info.height > 2.5 ? MAX_SIDE * 2 : MAX_SIDE
+  const out = await sharp(trimmed.data)
+    .resize({ width: maxSide, height: maxSide, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 84, alphaQuality: 90 })
     .toFile(join(OUT, `${name}.webp`))
   const share = cleared / (info.width * info.height)

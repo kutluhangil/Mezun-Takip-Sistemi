@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   },
   description:
     'Fenerbahçe Üniversitesi Sağlık Hizmetleri Meslek Yüksekokulu İlk ve Acil Yardım Programı mezun takip ve anket portalı.',
-  icons: { icon: '/brand/fbu-logo.png' },
 }
 
 export const viewport: Viewport = {
@@ -24,7 +23,7 @@ export const viewport: Viewport = {
 }
 
 // İlk boyamadan önce temayı uygular: koyu temada beyaz yanıp sönme olmaz
-const THEME_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )mts_theme=(light|dark|system)/);var p=m?m[1]:'system';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})()`
+const THEME_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )mts_theme=(light|dark|system)/);var p=m?m[1]:'light';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})()`
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [lang, theme] = await Promise.all([getServerLang(), getServerTheme()])

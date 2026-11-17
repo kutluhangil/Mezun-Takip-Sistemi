@@ -2,20 +2,17 @@
 
 import { useMemo, useState } from 'react'
 import { t } from '@/lib/i18n'
-import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import type { SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
 import { PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { CrossTabPanel } from './CrossTabPanel'
 import { FilterBar, useSurveyFilters } from './kit'
 import { QuestionChartCard } from './QuestionChartCard'
 
 export function AdminAnalyticsClient({
-  admin,
   survey,
   responses,
   totalGraduates,
 }: {
-  admin: AdminUser
   survey: SurveyRow
   responses: SubmittedResponseItem[]
   totalGraduates: number
@@ -29,7 +26,7 @@ export function AdminAnalyticsClient({
   )
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader kicker={<span className="tabular">{t(lang, 'ana.kicker', { n: filtered.length })}</span>} title={t(lang, 'ana.title')} lede={t(lang, 'ana.lede')} />
       <div className="mt-8"><FilterBar survey={survey} summary={summary} filters={filters} onChange={setFilters} /></div>
 
@@ -55,6 +52,6 @@ export function AdminAnalyticsClient({
       </div>
 
       <div className="mt-12"><CrossTabPanel definition={survey.definition} responses={filtered} /></div>
-    </AdminShell>
+    </>
   )
 }

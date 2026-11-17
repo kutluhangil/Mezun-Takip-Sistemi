@@ -46,12 +46,11 @@ export function LandingClient({ activePeriod, isOpen, hasSession }: { activePeri
         <ol>
           {STEPS.map((n, i) => (
             <li key={n} className={i ? 'border-t border-line-2' : ''}>
-              <div className="grid grid-cols-[48px_minmax(0,1fr)] items-baseline gap-4 px-1 py-6 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-6">
-                <span className="serif text-[34px] leading-none text-clay sm:text-[44px]">{n}</span>
-                <span>
-                  <span className="serif block text-[21px] leading-snug text-ink">{k(`land.step${n}Title`)}</span>
-                  <span className="mt-2 block text-[15.5px] leading-relaxed text-ink-2">{k(`land.step${n}Body`)}</span>
-                </span>
+              {/* Numara başlıkla aynı satırda ortalanır, açıklama başlığın hizasından devam eder */}
+              <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-4 px-1 py-6 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-x-6">
+                <span className="serif tabular self-center text-[34px] leading-none text-clay sm:text-[40px]" aria-hidden>{n}</span>
+                <h3 className="serif self-center text-[21px] leading-snug text-ink">{k(`land.step${n}Title`)}</h3>
+                <p className="col-start-2 mt-2 text-[15.5px] leading-relaxed text-ink-2">{k(`land.step${n}Body`)}</p>
               </div>
             </li>
           ))}

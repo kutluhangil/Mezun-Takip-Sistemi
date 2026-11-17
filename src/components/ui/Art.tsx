@@ -6,17 +6,13 @@ import manifest from '@/data/art-manifest.json'
  * kaynaklar ve promptlar docs/GEMINI-GORSEL-PROMPTLARI.md içinde, dönüştürme `npm run art`.
  * Manifestte olmayan görsel hiç çizilmez, kırık görsel kutusu çıkmaz.
  */
-export type ArtName = 'hero' | 'login' | 'privacy' | 'waiting' | 'thanks' | 'admin' | 'empty' | 'offline' | 'seal' | 'ornament'
+export type ArtName = 'hero' | 'login' | 'privacy' | 'waiting' | 'thanks' | 'admin' | 'empty' | 'offline' | 'ornament' | 'footer' | 'logo'
 
 /** `npm run art` yazar: yalnız public/art içinde gerçekten bulunan dosyalar */
 const LIGHT = new Set<string>(manifest.light)
 const DARK = new Set<string>(manifest.dark)
 
-/** Her temada koyu zeminde duran yerler (footer) için koyu sürüm; yoksa açık sürüm. */
-export function artSrcOnDark(name: ArtName): string | null {
-  if (DARK.has(name)) return `/art/${name}-dark.webp`
-  return LIGHT.has(name) ? `/art/${name}.webp` : null
-}
+export const hasArt = (name: ArtName) => LIGHT.has(name)
 
 export function Art({ name, className = '', priority = false }: { name: ArtName; className?: string; priority?: boolean }) {
   if (!LIGHT.has(name)) return null

@@ -4,9 +4,9 @@ import React, { useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { ArrowUp, Monitor, Moon, Sun } from 'lucide-react'
 import { t } from '@/lib/i18n'
-import { Art, artSrcOnDark } from './Art'
+import { Art, hasArt } from './Art'
 import { useUI } from './UIProvider'
 
 export interface NavItem {
@@ -23,19 +23,16 @@ function useActive() {
   return (item: NavItem) => (item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`))
 }
 
-export function BrandMark({ size = 'md', onDark = false }: { size?: 'md' | 'lg'; onDark?: boolean }) {
+export function BrandMark({ size = 'md' }: { size?: 'md' | 'lg' }) {
   const { lang } = useUI()
   const big = size === 'lg'
   return (
     <span className="inline-flex items-center gap-2.5">
-      {/* Logo koyu temada okunur kalsın diye fildişi zemin üzerinde */}
-      <span className={`grid place-items-center rounded-lg bg-[#faf9f5] ${big ? 'size-11 p-1' : 'size-8 p-[3px]'}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/fbu-logo.png" alt="" className="h-full w-full object-contain" />
-      </span>
+      {/* Sitenin kendi logosu (Gemini, docs/GEMINI-GORSEL-PROMPTLARI.md §11) */}
+      <Art name="logo" priority className={big ? 'size-11' : 'size-8'} />
       <span className="flex flex-col leading-none">
-        <span className={`serif ${onDark ? 'text-[#faf9f5]' : 'text-ink'} ${big ? 'text-[24px]' : 'text-[17px]'}`}>{t(lang, 'brand.short')}</span>
-        {big && <span className={`mt-1.5 text-[13px] ${onDark ? 'text-[#a3a199]' : 'text-ink-3'}`}>{t(lang, 'brand.uni')}</span>}
+        <span className={`serif text-ink ${big ? 'text-[24px]' : 'text-[17px]'}`}>{t(lang, 'brand.short')}</span>
+        {big && <span className="mt-1.5 text-[13px] text-ink-3">{t(lang, 'brand.uni')}</span>}
       </span>
     </span>
   )
@@ -134,6 +131,10 @@ export function MobileNav({ items }: { items: NavItem[] }) {
   )
 }
 
+/**
+ * Kâğıt footer: temayla birlikte döner (açıkta koyu fildişi, koyuda kömür). Üstte footer'ı boydan boya saran
+ * gravür bandı (`footer.webp`), altında marka, bağlantılar ve künye. Telefonda alt menünün altında kalmaz.
+ */
 export function SiteFooter() {
   const { lang } = useUI()
   const cols: { title: string; links: { label: string; href: string }[] }[] = [
@@ -153,34 +154,41 @@ export function SiteFooter() {
       ],
     },
   ]
+  const banner = hasArt('footer')
   return (
-    <footer className="mt-24 bg-[#141413] text-[#c2c0b6]">
-      <div className="mx-auto grid max-w-[1280px] gap-12 px-4 pb-10 pt-16 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
-        <div>
-          <BrandMark size="lg" onDark />
-          <p className="mt-5 max-w-[40ch] text-[15px] leading-relaxed text-[#a3a199]">{t(lang, 'foot.tagline')}</p>
-          {/* Footer her temada koyu: mührün koyu zemin sürümü sabit */}
-          {artSrcOnDark('seal') && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={artSrcOnDark('seal')!} alt="" aria-hidden loading="lazy" className="mt-8 size-20 object-contain opacity-90" />
-          )}
+    <footer className="mt-28 border-t border-line-2 bg-sunk/60 pb-[calc(62px+env(safe-area-inset-bottom))] md:pb-0">
+      {banner ? (
+        <Art name="footer" className="footer-band mx-auto w-full max-w-[1180px] px-4 pt-10 sm:px-6" />
+      ) : (
+        <div className="ornament pt-12"><Art name="ornament" className="h-6 w-24" /></div>
+      )}
+      <div className="mx-auto grid max-w-[1180px] grid-cols-2 gap-x-6 gap-y-10 px-4 pb-12 pt-10 sm:px-6 lg:grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,1fr))] lg:gap-16">
+        <div className="col-span-2 lg:col-span-1">
+          <BrandMark size="lg" />
+          <p className="mt-5 max-w-[44ch] text-[15px] leading-relaxed text-ink-2">{t(lang, 'foot.tagline')}</p>
         </div>
         {cols.map((c) => (
           <nav key={c.title} aria-label={c.title}>
-            <h2 className="text-[13.5px] text-[#8f8d85]">{c.title}</h2>
-            <ul className="mt-4 space-y-2.5">
+            <h2 className="text-[12.5px] font-medium uppercase tracking-[0.08em] text-ink-3">{c.title}</h2>
+            <ul className="mt-4 space-y-1">
               {c.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-[15px] text-[#e8e6dc] transition-colors hover:text-white">{l.label}</Link>
+                  <Link href={l.href} className="inline-flex min-h-[40px] items-center text-[15px] text-ink-2 transition-colors hover:text-clay">{l.label}</Link>
                 </li>
               ))}
             </ul>
           </nav>
         ))}
       </div>
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-6 text-[13px] text-[#8f8d85] sm:px-6">
-        <p>© {new Date().getFullYear()} {t(lang, 'brand.uni')}</p>
-        <p>{t(lang, 'brand.unit')}</p>
+      <div className="border-t border-line-2">
+        <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-4 py-6 text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p>© {new Date().getFullYear()} {t(lang, 'brand.uni')} · {t(lang, 'brand.unit')}</p>
+          <a href="#top" onClick={(e) => { e.preventDefault(); scrollTo({ top: 0, behavior: 'smooth' }) }}
+            className="inline-flex items-center gap-1.5 self-start rounded-full py-1 transition-colors hover:text-ink sm:self-auto">
+            <ArrowUp size={14} strokeWidth={1.75} />
+            {t(lang, 'foot.top')}
+          </a>
+        </div>
       </div>
     </footer>
   )

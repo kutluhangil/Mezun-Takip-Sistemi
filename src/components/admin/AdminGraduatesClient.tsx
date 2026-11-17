@@ -7,7 +7,6 @@ import { t } from '@/lib/i18n'
 import type { AppSettingsBundle, GraduateListItem } from '@/lib/server-data'
 import type { AdminUser, SurveyRow } from '@/lib/survey-types'
 import { btn, Notice, PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 import { apiJson, fmtDate, LabeledInput, Sheet } from './kit'
 
@@ -141,7 +140,7 @@ export function AdminGraduatesClient({
   }
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader
         kicker={<span className="tabular">{t(lang, 'grad.kicker', { total: graduates.length, pending, period: survey.active_period })}</span>}
         title={t(lang, 'grad.title')}
@@ -272,6 +271,6 @@ export function AdminGraduatesClient({
           </div>
         )}
       </Sheet>
-    </AdminShell>
+    </>
   )
 }

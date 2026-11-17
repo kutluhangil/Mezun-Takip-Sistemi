@@ -30,10 +30,12 @@ export function migrationsDir() {
   return path.join(process.cwd(), 'db', 'migrations')
 }
 
+// turbopackIgnore: yol çalışma anında hesaplanır; Next izleyicisi tüm projeyi pakete katmasın.
+// Migration dosyaları next.config.ts > outputFileTracingIncludes ile açıkça eklenir.
 export function listMigrations(dir = migrationsDir()) {
-  if (!fs.existsSync(dir)) return []
+  if (!fs.existsSync(/*turbopackIgnore: true*/ dir)) return []
   return fs
-    .readdirSync(dir)
+    .readdirSync(/*turbopackIgnore: true*/ dir)
     .filter((f) => /^\d{3}_.+\.sql$/.test(f))
     .sort()
 }
@@ -61,7 +63,7 @@ export async function runMigrations(pool, { log = () => {} } = {}) {
     // Transaction kilidi: aynı anda açılan iki sunucu örneği aynı migration'ı iki kez çalıştırmaz.
     // Oturum kilidi yerine xact kilidi, çünkü Neon havuzu (pgbouncer) transaction kipinde çalışır.
     for (const file of pending) {
-      const sql = fs.readFileSync(path.join(migrationsDir(), file), 'utf8')
+      const sql = fs.readFileSync(/*turbopackIgnore: true*/ path.join(migrationsDir(), file), 'utf8')
       await client.query('BEGIN')
       try {
         await client.query('SELECT pg_advisory_xact_lock(727274)')

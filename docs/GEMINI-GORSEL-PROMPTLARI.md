@@ -54,10 +54,11 @@ Now draw the exact same illustration as a dark-mode variant: identical compositi
 | 6 | `empty.png` · `empty-dark.png` | Boş liste, 404, anket kapalı | Kare |
 | 7 | `admin.png` · `admin-dark.png` | Öğretmen girişi ve boş panel | Kare |
 | 8 | `offline.png` · `offline-dark.png` | Hata sayfası | Kare |
-| 9 | `seal.png` · `seal-dark.png` | Footer mührü (footer hep koyu: `seal-dark` kullanılır) | Kare |
+| 9 | `footer.png` · `footer-dark.png` | Footer'ın üstünü boydan boya saran gravür bandı (eski mührün yerine) | Çok geniş 21:9 |
 | 10 | `ornament.png` · `ornament-dark.png` | Bölüm başlıklarının üstündeki küçük süs | Geniş 2:1 |
+| 11 | `logo.png` · `logo-dark.png` | Sitenin kendi logosu: üst menü, footer, sekme ikonu (FBÜ logosunun yerine) | Kare |
 
-> 5–9 numaralılar sitede zaten var ama yalnız açık sürümleri mevcut. Koyu temada da güzel görünmeleri için ikisini birlikte yeniden üret. Eski `seal` koyu zeminle üretilmişti; yeni kurala göre `seal.png` açık, `seal-dark.png` koyu olacak.
+> **Durum (2026-11-18):** 11 görselin tamamı (2. turdaki `footer` ve `logo` dahil) yayında. Eski `seal` (footer mührü) kaldırıldı, kaynakları `assets-src/arsiv/` içinde.
 
 ### 1. hero — ana sahne
 
@@ -107,11 +108,15 @@ Subject: A delicate brass drafting compass standing above three clean engraved b
 Subject: An engraved folded map sheet with soft terracotta-clay regions, lying slightly open, with a brass stethoscope resting calmly across one corner, its tubing curving gently.
 ```
 
-### 9. seal — footer mührü
+### 9. footer — footer gravür bandı (geniş)
+
+Ortak stilin son satırındaki "Square 2048x2048, the subject fills about 70%" kısmını şununla değiştir: **"Ultra-wide 21:9 panoramic frieze, 3072x1316. The scene is a single continuous horizontal band in the lower two thirds; both left and right ends dissolve gradually into empty background, with no hard edge or frame."**
 
 ```text
-Subject: A round academic seal drawn as an engraving, with a double thin circular border and a ring of tiny dots between the two borders. In its center, a stylized six-armed Star of Life in terracotta clay, surrounded by six small connected round nodes like a network. Flat, balanced, print-like.
+Subject: A calm panoramic engraved frieze telling the journey of first-aid and emergency-care graduates, read from left to right along one continuous ground line. On the far left, a few open books and a graduation cap resting on a small stack of papers. Then a modest classical campus building with slender columns and a few trees. In the center, a classic box ambulance seen from the side with a terracotta clay six-armed Star of Life on its door, parked on a gently curving road. Further right, the road winds toward soft rolling hills and a distant low city skyline with a slender old stone tower. A single fine ECG heartbeat line runs along the whole ground line, rising into one clear heartbeat peak beneath the ambulance and settling flat again at both ends. Small figures are shown only from far away or from behind, with no faces. Lots of quiet sky above. Terracotta clay accents only on the Star of Life, a few rooftops and the cap tassel; soft peach in the hills.
 ```
+
+Koyu sürüm bloğu aynen geçerli (düz siyah zemin, fildişi çizgiler).
 
 ### 10. ornament — bölüm süsü (geniş)
 
@@ -130,3 +135,23 @@ Subject: A small symmetrical cartographer's ornament: a minimalist eight-pointed
 - Çizimin içindeki açık alanlar saf beyaz değil, kırık beyaz mı? (Saf beyaz olursa script onları da delebilir.)
 - Konu tuvalin ortasında, kenarlara değmiyor mu?
 - `npm run art` çıktısında "zeminin %…'i silindi" oranı %30'un üstünde mi? Çok düşükse zemin düz değildir.
+
+### 11. logo — sitenin logosu (şeffaf zeminli)
+
+Bu görsel için **Ortak stil bloğunu kullanma**; aşağıdaki prompt kendi başına tam. Gemini gerçek şeffaflık vermediği için düz beyaz zemin istiyoruz; `npm run art` zemini silip **şeffaf** `logo.webp` üretir. Logo 32 piksele kadar küçüleceği için tarama yok, düz ve kalın çizgiler var.
+
+```text
+Design a unique, minimal emblem logo for a university first-aid and emergency-care alumni tracking portal. A perfect circle drawn with one confident dark ink outline (#141413). Inside it, a bold six-armed Star of Life filled with flat terracotta clay #D97757, its arms with softly rounded ends. Running vertically through the center of the star, a simple Rod of Asclepius with a single serpent, drawn as one clean warm off-white line (#FAF9F5). Above the top arm, a tiny graduation cap silhouette in dark ink, perfectly centered. Flat vector style inspired by engraved seals but with NO hatching, NO texture, NO gradients, NO shadows: only flat fills and clean strokes, so it stays crisp and readable at 32x32 pixels. Strictly symmetrical, centered, generous inner padding.
+Isolated on a perfectly flat, solid, pure white #FFFFFF background. No checkerboard, no texture, no frame, no drop shadow.
+Absolutely no text, letters, numbers or initials.
+Square 1024x1024, the emblem fills about 80% of the canvas.
+```
+
+Koyu sürüm (aynı sohbette):
+
+```text
+Now the exact same logo for dark backgrounds: identical shapes and composition. The circle outline and the graduation cap become warm ivory #FAF9F5, the Star of Life stays terracotta clay #D97757, and the serpent line stays #FAF9F5. Flat fills only. Isolated on a perfectly flat, solid, pure black #000000 background. No text, no shadow, no glow, no checkerboard.
+```
+
+Kaydet: `assets-src/illustrations/logo.png` ve `logo-dark.png`, sonra `npm run art`. Logo gelince üst menüde, footer'da ve tarayıcı sekmesi ikonunda geçici mürekkep işaretinin yerini kendiliğinden alır (sekme ikonu `src/app/icon.png` ve `apple-icon.png` logodan üretilir).
+

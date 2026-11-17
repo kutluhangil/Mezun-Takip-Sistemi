@@ -8,7 +8,6 @@ import { t, type I18nKey } from '@/lib/i18n'
 import type { AppSettingsBundle } from '@/lib/server-data'
 import type { AdminUser, SurveyRow } from '@/lib/survey-types'
 import { btn, Card, Notice, PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 import { apiJson, fmtDateTime, LabeledInput, Sheet } from './kit'
 
@@ -79,7 +78,7 @@ export function AdminSettingsClient({
   }
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader title={t(lang, 'set.title')} lede={t(lang, owner ? 'set.lede' : 'set.ledeViewer')} />
       {msg && <div className="mt-6"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
 
@@ -227,6 +226,6 @@ export function AdminSettingsClient({
           <button type="submit" disabled={busy} className={`${btn.primary} mt-2`}>{t(lang, 'set.resetPw')}</button>
         </form>
       </Sheet>
-    </AdminShell>
+    </>
   )
 }

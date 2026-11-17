@@ -21,16 +21,15 @@ export function stripIdentity(responses: SubmittedResponseItem[]): SubmittedResp
   })
 }
 
+/** Yetki her sayfada ayrıca doğrulanır: layout gezinmede yeniden çalışmayabilir. */
 export async function loadAnalytics(): Promise<{
-  admin: AdminUser
   survey: SurveyRow
   responses: SubmittedResponseItem[]
   totalGraduates: number
 }> {
-  const admin = await requireAdmin()
-  const survey = await getActiveSurvey()
-  const [responses, totalGraduates] = await Promise.all([getSubmittedResponses(survey.id), countGraduates()])
-  return { admin, survey, responses: stripIdentity(responses), totalGraduates }
+  const [, survey, totalGraduates] = await Promise.all([requireAdmin(), getActiveSurvey(), countGraduates()])
+  const responses = await getSubmittedResponses(survey.id)
+  return { survey, responses: stripIdentity(responses), totalGraduates }
 }
 
 export async function countGraduates(): Promise<number> {

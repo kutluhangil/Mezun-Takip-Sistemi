@@ -4,22 +4,19 @@ import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
 import { extractSingleChoice, formatAnswerLabel } from '@/lib/aggregate'
 import { t } from '@/lib/i18n'
-import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import type { SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
 import { Art } from '@/components/ui/Art'
 import { PageHeader } from '@/components/ui/AppShell'
-import { AdminShell } from '@/components/ui/Shells'
 import { FilterBar, fmtDateTime, pct, Stat, useSurveyFilters } from './kit'
 import { QuestionChartCard } from './QuestionChartCard'
 
 const HIGHLIGHTS = ['q_work_status', 'q_satisfaction', 'q_job_title', 'q_recommend_uni']
 
 export function AdminOverviewClient({
-  admin,
   survey,
   responses,
   totalGraduates,
 }: {
-  admin: AdminUser
   survey: SurveyRow
   responses: SubmittedResponseItem[]
   totalGraduates: number
@@ -29,7 +26,7 @@ export function AdminOverviewClient({
   const highlights = summary.questions.filter((a) => HIGHLIGHTS.includes(a.question.id))
 
   return (
-    <AdminShell admin={admin}>
+    <>
       <PageHeader
         kicker={
           <>
@@ -90,6 +87,6 @@ export function AdminOverviewClient({
           </section>
         </>
       )}
-    </AdminShell>
+    </>
   )
 }

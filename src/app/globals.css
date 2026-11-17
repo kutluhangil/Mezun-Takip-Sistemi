@@ -210,3 +210,11 @@ details[open] .chev { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Footer gravür bandı: iki ucu kâğıda karışır, sert kenar görünmez */
+.footer-band img {
+  height: auto;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+

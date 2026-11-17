@@ -2,24 +2,26 @@
   "light": [
     "admin",
     "empty",
+    "footer",
     "hero",
     "login",
+    "logo",
     "offline",
     "ornament",
     "privacy",
-    "seal",
     "thanks",
     "waiting"
   ],
   "dark": [
     "admin",
     "empty",
+    "footer",
     "hero",
     "login",
+    "logo",
     "offline",
     "ornament",
     "privacy",
-    "seal",
     "thanks",
     "waiting"
   ]
