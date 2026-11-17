@@ -8,9 +8,7 @@ export async function GET() {
     await query('SELECT 1')
     return NextResponse.json({ ok: true, db: 'connected', ts: new Date().toISOString() })
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, db: 'error', error: (err as Error).message },
-      { status: 500 }
-    )
+    console.error('[health]', err)
+    return NextResponse.json({ ok: false, db: 'error' }, { status: 503 })
   }
 }

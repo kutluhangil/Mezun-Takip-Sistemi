@@ -6,23 +6,7 @@ import { GraduateLoginClient } from '@/components/auth/GraduateLoginClient'
 export const dynamic = 'force-dynamic'
 
 export default async function GraduateLoginPage() {
-  let kvkkTr = ''
-  let kvkkEn = ''
-
-  try {
-    const grad = await getGraduateSession()
-    if (grad) {
-      redirect('/anket')
-    }
-    const settings = await getAppSettings()
-    kvkkTr = settings.kvkkNotice.tr
-    kvkkEn = settings.kvkkNotice.en
-  } catch (err) {
-    if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) {
-      throw err
-    }
-  }
-
-  const showDemoLogin = process.env.NODE_ENV !== 'production'
-  return <GraduateLoginClient kvkkTextTr={kvkkTr} kvkkTextEn={kvkkEn} showDemoLogin={showDemoLogin} />
+  if (await getGraduateSession().catch(() => null)) redirect('/anket')
+  const settings = await getAppSettings().catch(() => null)
+  return <GraduateLoginClient kvkkTextTr={settings?.kvkkNotice.tr ?? ''} kvkkTextEn={settings?.kvkkNotice.en ?? ''} />
 }

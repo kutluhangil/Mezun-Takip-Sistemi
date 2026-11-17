@@ -1,77 +1,29 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import crypto from 'node:crypto'
 import pg from 'pg'
+import { ensureSeed, runMigrations, sslConfig } from '../db/core.mjs'
 
-const { Pool } = pg
-
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex')
-  const derived = crypto.scryptSync(password, salt, 64).toString('hex')
-  return `scrypt$${salt}$${derived}`
-}
-
-function shouldUseSsl(connectionString) {
-  if (process.env.DATABASE_SSL === 'false') return false
-  if (process.env.DATABASE_SSL === 'true') return true
-  try {
-    const parsed = new URL(connectionString)
-    const host = parsed.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1' || host === 'postgres') {
-      return parsed.searchParams.get('sslmode') === 'require'
-    }
-    return true
-  } catch {
-    return connectionString.includes('sslmode=require')
-  }
-}
-
+// Kullanım: npm run db:migrate            → bekleyen migration'lar + anket + ilk yönetici
+//           npm run db:migrate -- --demo  → ek olarak örnek mezun ve yanıtlar (yalnız yerel/deneme)
 async function main() {
   const isDemo = process.argv.includes('--demo')
-  const connectionString =
-    process.env.DATABASE_URL || 'postgresql://mezun:mezun_dev_pass@localhost:5432/mezun_takip'
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) throw new Error('DATABASE_URL tanımlı değil.')
+  if (isDemo && process.env.NODE_ENV === 'production') throw new Error('--demo üretimde çalıştırılamaz.')
 
-  const pool = new Pool({
-    connectionString,
-    ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : undefined,
-  })
+  const pool = new pg.Pool({ connectionString, ssl: sslConfig(connectionString) })
+  const log = (m) => console.log(m)
 
   try {
-    const sqlPath = path.join(process.cwd(), 'db', 'migrations', '001_init.sql')
-    const sql = fs.readFileSync(sqlPath, 'utf8')
-    await pool.query(sql)
-    console.log('[db:migrate] 001_init.sql uygulandı.')
+    const applied = await runMigrations(pool, { log })
+    if (applied.length === 0) log('[db:migrate] Bekleyen migration yok.')
 
-    const surveyPath = path.join(process.cwd(), 'data', 'surveys', 'mezun-bilgi-2026.json')
-    const survey = JSON.parse(fs.readFileSync(surveyPath, 'utf8'))
+    const survey = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'surveys', 'mezun-bilgi-2026.json'), 'utf8'))
+    await ensureSeed(pool, survey, { log })
 
-    const surveyRes = await pool.query(
-      `INSERT INTO surveys (slug, title_tr, title_en, definition)
-       VALUES ($1, $2, $3, $4::jsonb)
-       ON CONFLICT (slug) DO UPDATE SET
-         title_tr = EXCLUDED.title_tr,
-         title_en = EXCLUDED.title_en,
-         definition = EXCLUDED.definition,
-         updated_at = NOW()
-       RETURNING id, active_period`,
-      [survey.slug, survey.title.tr, survey.title.en, JSON.stringify(survey)]
-    )
-    const surveyId = surveyRes.rows[0].id
-    const activePeriod = surveyRes.rows[0].active_period
-
-    const adminCount = await pool.query('SELECT COUNT(*)::int AS c FROM admins')
-    if (adminCount.rows[0].c === 0) {
-      const ownerEmail = (process.env.ADMIN_OWNER_EMAIL || 'admin@fbu.edu.tr').trim().toLowerCase()
-      const ownerName = (process.env.ADMIN_OWNER_NAME || 'Program Başkanı').trim()
-      const ownerPass = process.env.ADMIN_OWNER_PASSWORD || 'ChangeMe123!'
-      await pool.query(
-        `INSERT INTO admins (email, full_name, role, password_hash)
-         VALUES ($1, $2, 'owner', $3)
-         ON CONFLICT (email) DO NOTHING`,
-        [ownerEmail, ownerName, hashPassword(ownerPass)]
-      )
-      console.log(`[db:migrate] İlk owner yönetici eklendi: ${ownerEmail}`)
-    }
+    const surveyRow = await pool.query(`SELECT id, active_period FROM surveys WHERE slug = $1`, [survey.slug])
+    const surveyId = surveyRow.rows[0].id
+    const activePeriod = surveyRow.rows[0].active_period
 
     if (isDemo) {
       const demoGraduates = [

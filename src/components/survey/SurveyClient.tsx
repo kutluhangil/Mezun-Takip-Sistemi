@@ -1,43 +1,33 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, Send } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CloudOff, Loader2, Send } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import type { KvkkNoticeSetting, SubmissionHistoryItem } from '@/lib/server-data'
 import { isQuestionAnswered, validateSurveyAnswers, type EligibilityResult } from '@/lib/survey-validation'
-import type { AnswerMap, AnswerValue, GraduateRecord, SurveyRow } from '@/lib/survey-types'
+import type { AnswerMap, AnswerValue, GraduateRecord, Lang, SurveyRow } from '@/lib/survey-types'
+import { Art } from '@/components/ui/Art'
+import { btn, Notice } from '@/components/ui/AppShell'
 import { PublicShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 import { QuestionField } from './QuestionField'
 
-export interface HistoryItem {
-  id: string
-  period_key: string
-  submission_number: number
-  submitted_at: string
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+function initialAnswers(graduate: GraduateRecord, draft: AnswerMap | null): AnswerMap {
+  const a: AnswerMap = { ...(draft ?? {}) }
+  a.q_full_name = graduate.full_name
+  a.q_email = graduate.email
+  if (!a.q_student_number && graduate.student_number) a.q_student_number = graduate.student_number
+  if (!a.q_grad_year && graduate.graduation_year) a.q_grad_year = graduate.graduation_year
+  if (!a.q_grad_term && graduate.graduation_term) a.q_grad_term = { choice: graduate.graduation_term }
+  return a
 }
 
-function buildInitialAnswers(
-  graduate: GraduateRecord,
-  survey: SurveyRow,
-  draftAnswers: AnswerMap | null
-): AnswerMap {
-  const base: AnswerMap = { ...(draftAnswers ?? {}) }
-  base.q_full_name = graduate.full_name
-  base.q_email = graduate.email
-  if (!base.q_student_number && graduate.student_number) {
-    base.q_student_number = graduate.student_number
-  }
-  if (!base.q_grad_year && graduate.graduation_year) {
-    base.q_grad_year = graduate.graduation_year
-  }
-  if (!base.q_grad_term && graduate.graduation_term) {
-    base.q_grad_term = { choice: graduate.graduation_term }
-  }
-  void survey
-  return base
-}
+const sectionTitle = (s: string) => s.replace(/^\d+\.\s*/, '')
+const fmtDate = (iso: string, lang: Lang) => new Date(iso).toLocaleDateString(lang === 'en' ? 'en-GB' : 'tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export function SurveyClient({
   graduate,
@@ -45,354 +35,291 @@ export function SurveyClient({
   eligibility,
   history,
   draftAnswers,
+  kvkk,
 }: {
   graduate: GraduateRecord
   survey: SurveyRow
   eligibility: EligibilityResult
-  history: HistoryItem[]
+  history: SubmissionHistoryItem[]
   draftAnswers: AnswerMap | null
+  kvkk: KvkkNoticeSetting | null
 }) {
   const { lang } = useUI()
+  const [needsConsent, setNeedsConsent] = useState(Boolean(kvkk))
+
+  if (!eligibility.allowed) return <NotEligible eligibility={eligibility} history={history} lang={lang} />
+  if (needsConsent && kvkk) return <ConsentGate kvkk={kvkk} lang={lang} onDone={() => setNeedsConsent(false)} />
+  return <SurveyForm graduate={graduate} survey={survey} draftAnswers={draftAnswers} lang={lang} />
+}
+
+function SurveyForm({ graduate, survey, draftAnswers, lang }: { graduate: GraduateRecord; survey: SurveyRow; draftAnswers: AnswerMap | null; lang: Lang }) {
   const router = useRouter()
-  const sections = survey.definition.sections
-  const questions = survey.definition.questions
-
-  const [stepIdx, setStepIdx] = useState(0)
-  const [answers, setAnswers] = useState<AnswerMap>(() =>
-    buildInitialAnswers(graduate, survey, draftAnswers)
-  )
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [errorsByQ, setErrorsByQ] = useState<Record<string, string>>({})
+  const { sections, questions } = survey.definition
+  const [answers, setAnswers] = useState<AnswerMap>(() => initialAnswers(graduate, draftAnswers))
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [banner, setBanner] = useState<string | null>(null)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   const [submitting, setSubmitting] = useState(false)
-  const [submitBanner, setSubmitBanner] = useState<string | null>(null)
-  const [shake, setShake] = useState(false)
+  const dirty = useRef(false)
+  const latest = useRef(answers)
+  useEffect(() => {
+    latest.current = answers
+  }, [answers])
 
-  const dirtyRef = useRef(false)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const numbers = useMemo(() => Object.fromEntries(questions.map((q, i) => [q.id, i + 1])), [questions])
+  const missingIn = useCallback(
+    (secId: string, a: AnswerMap) => questions.filter((q) => q.section === secId && q.required && !isQuestionAnswered(q, a[q.id])),
+    [questions]
+  )
+  // Yarım bırakılan ankette ilk eksik bölümden devam
+  const [step, setStep] = useState(() => {
+    const idx = sections.findIndex((s) => missingIn(s.id, answers).length > 0)
+    return idx === -1 ? sections.length - 1 : idx
+  })
+  const section = sections[step]
+  const isLast = step === sections.length - 1
 
-  const questionNumbers = useMemo(() => {
-    const map: Record<string, number> = {}
-    questions.forEach((q, idx) => {
-      map[q.id] = idx + 1
-    })
-    return map
-  }, [questions])
-
-  const persistDraft = async (payload: AnswerMap) => {
+  const save = useCallback(async (payload: AnswerMap, keepalive = false) => {
     setSaveState('saving')
     try {
       const res = await fetch('/api/survey/draft', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: payload }),
+        keepalive,
       })
       setSaveState(res.ok ? 'saved' : 'error')
+      if (res.ok) dirty.current = false
     } catch {
       setSaveState('error')
     }
-  }
+  }, [])
 
   useEffect(() => {
-    if (!eligibility.allowed || !dirtyRef.current) return
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => {
-      void persistDraft(answers)
-    }, 750)
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
-  }, [answers, eligibility.allowed])
+    if (!dirty.current) return
+    const id = setTimeout(() => void save(answers), 800)
+    return () => clearTimeout(id)
+  }, [answers, save])
 
-  const handleChange = (qId: string, val: AnswerValue) => {
-    dirtyRef.current = true
-    setAnswers((prev) => ({ ...prev, [qId]: val }))
-    if (errorsByQ[qId]) {
-      setErrorsByQ((prev) => {
-        const next = { ...prev }
-        delete next[qId]
-        return next
-      })
+  // Sekme kapanırken / arka plana geçerken bekleyen taslağı gönder (telefonda sık olur)
+  useEffect(() => {
+    const flush = () => {
+      if (document.visibilityState === 'hidden' && dirty.current) void save(latest.current, true)
     }
+    document.addEventListener('visibilitychange', flush)
+    return () => document.removeEventListener('visibilitychange', flush)
+  }, [save])
+
+  const change = (id: string, v: AnswerValue) => {
+    dirty.current = true
+    setAnswers((a) => ({ ...a, [id]: v }))
+    if (errors[id]) setErrors(({ [id]: _, ...rest }) => rest)
   }
 
-  const currentSection = sections[stepIdx]
-  const currentQuestions = questions.filter((q) => q.section === currentSection?.id)
+  const focusFirst = (id: string) =>
+    setTimeout(() => document.getElementById(`q-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
 
-  const validateSection = (secId: string): boolean => {
-    const missing: Record<string, string> = {}
-    for (const q of questions.filter((item) => item.section === secId)) {
-      if (q.required && !isQuestionAnswered(q, answers[q.id])) {
-        missing[q.id] =
-          lang === 'en' ? 'This question requires an answer.' : 'Bu soru zorunludur.'
-      }
-    }
-    if (Object.keys(missing).length > 0) {
-      setErrorsByQ((prev) => ({ ...prev, ...missing }))
-      setShake(false)
-      requestAnimationFrame(() => setShake(true))
-      const firstId = Object.keys(missing)[0]
-      document.getElementById(`q-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return false
-    }
-    return true
-  }
-
-  const handleNext = () => {
-    if (!currentSection) return
-    if (!validateSection(currentSection.id)) return
-    setStepIdx((i) => Math.min(sections.length - 1, i + 1))
+  const go = (to: number) => {
+    setBanner(null)
+    setStep(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handlePrev = () => {
-    setStepIdx((i) => Math.max(0, i - 1))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const next = () => {
+    const missing = missingIn(section.id, answers)
+    if (missing.length > 0) {
+      setErrors((e) => ({ ...e, ...Object.fromEntries(missing.map((q) => [q.id, t(lang, 'survey.required')])) }))
+      setBanner(t(lang, 'survey.missingInSection', { n: missing.length }))
+      return focusFirst(missing[0].id)
+    }
+    go(step + 1)
   }
 
-  const handleSubmit = async () => {
-    setSubmitBanner(null)
-    const allErrs = validateSurveyAnswers(survey.definition, answers, lang)
-    if (allErrs.length > 0) {
-      const errMap: Record<string, string> = {}
-      for (const e of allErrs) errMap[e.questionId] = e.message
-      setErrorsByQ(errMap)
-
-      const firstSecIdx = sections.findIndex((s) => s.id === allErrs[0].section)
-      if (firstSecIdx >= 0) setStepIdx(firstSecIdx)
-      setSubmitBanner(
-        lang === 'en'
-          ? `Please complete ${allErrs.length} required field(s) highlighted below.`
-          : `Lütfen işaretlenen ${allErrs.length} zorunlu soruyu tamamlayın.`
-      )
-      setTimeout(() => {
-        document
-          .getElementById(`q-${allErrs[0].questionId}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 100)
-      return
+  const submit = async () => {
+    const all = validateSurveyAnswers(survey.definition, answers, lang)
+    if (all.length > 0) {
+      setErrors(Object.fromEntries(all.map((e) => [e.questionId, e.message])))
+      setStep(sections.findIndex((s) => s.id === all[0].section))
+      setBanner(t(lang, 'survey.missingTotal', { n: all.length }))
+      return focusFirst(all[0].questionId)
     }
-
     setSubmitting(true)
+    setBanner(null)
     try {
       const res = await fetch('/api/survey/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers, lang }),
       })
-      const data = (await res.json()) as {
-        error?: string
-        errors?: { questionId: string; message: string }[]
-        redirectTo?: string
-      }
-      if (!res.ok) {
-        if (data.errors?.length) {
-          const m: Record<string, string> = {}
-          for (const e of data.errors) m[e.questionId] = e.message
-          setErrorsByQ(m)
-        }
-        setSubmitBanner(data.error || 'Anket gönderilemedi.')
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        router.push(data.redirectTo || '/tesekkurler')
+        router.refresh()
         return
       }
-      router.push(data.redirectTo || '/tesekkurler')
-      router.refresh()
+      if (res.status === 409 || res.status === 403) {
+        router.refresh()
+        return
+      }
+      if (data.errors?.length) setErrors(Object.fromEntries(data.errors.map((e: { questionId: string; message: string }) => [e.questionId, e.message])))
+      setBanner(t(lang, 'survey.submitError'))
     } catch {
-      setSubmitBanner('Gönderim sırasında bağlantı hatası oluştu.')
+      setBanner(t(lang, 'error.network'))
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (!eligibility.allowed) {
-    return (
-      <PublicShell graduateEmail={graduate.email}>
-        <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-          <div className="enter rounded-3xl border border-line-2 bg-raised/90 p-6 sm:p-8 shadow-[var(--shadow)]">
-            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-sage/15 text-sage">
-              <CheckCircle2 className="size-6" />
-            </div>
-            <h1 className="serif mt-4 text-3xl text-ink">{t(lang, 'survey.alreadyDoneTitle')}</h1>
-            <p className="mt-2.5 text-base leading-relaxed text-ink-2">
-              {eligibility.reason === 'survey_closed'
-                ? lang === 'en'
-                  ? 'The survey is currently closed for new submissions.'
-                  : 'Anket şu anda yeni yanıtlara kapalıdır.'
-                : t(lang, 'survey.alreadyDoneBody')}
-            </p>
-            {eligibility.nextAvailableAt && (
-              <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-line bg-sunk px-3.5 py-1.5 text-xs font-medium text-ink-2 tabular">
-                <Clock className="size-3.5 text-clay" />
-                {new Date(eligibility.nextAvailableAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR')}
-              </p>
-            )}
-
-            {history.length > 0 && (
-              <div className="mt-6 border-t border-line-2 pt-5">
-                <h2 className="text-sm font-semibold text-ink">{t(lang, 'survey.historyTitle')}</h2>
-                <ul className="mt-3 space-y-2">
-                  {history.map((h) => (
-                    <li
-                      key={h.id}
-                      className="flex items-center justify-between rounded-xl border border-line-2 bg-surface px-4 py-2.5 text-sm"
-                    >
-                      <span className="font-medium text-ink tabular">
-                        #{h.submission_number} · {h.period_key}
-                      </span>
-                      <span className="text-xs text-ink-3 tabular">
-                        {new Date(h.submitted_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR')}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/"
-                className="inline-flex h-11 items-center rounded-full border border-line bg-surface px-5 text-sm font-medium text-ink hover:border-ink-3"
-              >
-                {t(lang, 'thanks.backHome')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </PublicShell>
-    )
-  }
-
-  const pct = Math.round(((stepIdx + 1) / sections.length) * 100)
+  const sectionQs = questions.filter((q) => q.section === section.id)
+  const answeredCount = questions.filter((q) => isQuestionAnswered(q, answers[q.id])).length
+  const pct = Math.round((answeredCount / questions.length) * 100)
 
   return (
-    <PublicShell hideMobileNav graduateEmail={graduate.email}>
-      <div className="mx-auto max-w-3xl px-4 pt-6 pb-16 sm:px-6">
-        {/* Üst ilerleme ve dönem şeridi */}
-        <div className="rounded-2xl border border-line-2 bg-raised/85 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs font-medium text-ink-2">
-              <span className="live-dot" />
-              <span className="tabular">
-                {t(lang, 'survey.periodTag')} {survey.active_period}
-              </span>
-              <span className="text-line">|</span>
-              <span className="tabular text-clay-ink">
-                {t(lang, 'survey.stepOf', { current: stepIdx + 1, total: sections.length })}
-              </span>
-            </div>
-
-            <div className="text-xs font-medium text-ink-3">
-              {saveState === 'saving' && <span>{t(lang, 'survey.saving')}</span>}
-              {saveState === 'saved' && (
-                <span className="inline-flex items-center gap-1 text-sage">
-                  <Check className="size-3.5" />
-                  {t(lang, 'survey.saved')}
-                </span>
-              )}
-              {saveState === 'error' && <span className="text-danger">{t(lang, 'survey.saveError')}</span>}
-            </div>
-          </div>
-
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sunk">
-            <div
-              className="h-full rounded-full bg-clay transition-all duration-300"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-
-          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-            {sections.map((s, idx) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => {
-                  if (idx <= stepIdx || validateSection(sections[stepIdx].id)) {
-                    setStepIdx(idx)
-                  }
-                }}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  idx === stepIdx
-                    ? 'bg-ink text-bg'
-                    : idx < stepIdx
-                    ? 'bg-band/40 text-ink'
-                    : 'bg-sunk text-ink-3'
-                }`}
-              >
-                {idx + 1}. {s.title[lang]}
-              </button>
+    <PublicShell signedIn focus>
+      {/* İlerleme şeridi */}
+      <div className="sticky top-[calc(64px+env(safe-area-inset-top))] z-30 border-b border-line-2 bg-bg/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[760px] items-center gap-4 px-4 py-2.5 sm:px-6">
+          <ol className="flex flex-1 gap-1.5" aria-label={t(lang, 'survey.stepOf', { current: step + 1, total: sections.length })}>
+            {sections.map((s, i) => (
+              <li key={s.id} className="flex-1">
+                <button type="button" onClick={() => i < step && go(i)} disabled={i >= step} aria-current={i === step ? 'step' : undefined}
+                  aria-label={sectionTitle(s.title[lang])}
+                  className={`block h-1.5 w-full rounded-full transition-colors ${i < step ? 'bg-clay' : i === step ? 'bg-ink' : 'bg-line'}`} />
+              </li>
             ))}
-          </div>
+          </ol>
+          <span className="shrink-0 text-[12.5px] tabular text-ink-3">%{pct}</span>
         </div>
+      </div>
 
-        {/* Bölüm başlığı */}
-        {currentSection && (
-          <div className={`mt-6 ${shake ? 'shake' : ''}`}>
-            <h1 className="serif text-2xl sm:text-3xl font-normal text-ink">
-              {currentSection.title[lang]}
-            </h1>
-            <p className="mt-1.5 text-sm sm:text-base text-ink-2">
-              {currentSection.description[lang]}
-            </p>
-          </div>
-        )}
+      <div className="mx-auto max-w-[760px] px-4 sm:px-6">
+        <header key={section.id} className="reveal pt-8 sm:pt-12">
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-ink-3">
+            <span>{t(lang, 'survey.stepOf', { current: step + 1, total: sections.length })}</span>
+            <span>{t(lang, 'survey.periodTag')} <span className="tabular text-ink-2">{survey.active_period}</span></span>
+          </p>
+          <h1 className="serif mt-3 text-[32px] leading-[1.1] text-ink sm:text-[42px]">{sectionTitle(section.title[lang])}</h1>
+          {section.description[lang] && <p className="mt-3 max-w-[60ch] text-[15.5px] leading-relaxed text-ink-2">{section.description[lang]}</p>}
+        </header>
 
-        {submitBanner && (
-          <div
-            role="alert"
-            className="mt-4 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
-          >
-            {submitBanner}
-          </div>
-        )}
+        {banner && <div className="mt-6"><Notice tone="warn">{banner}</Notice></div>}
 
-        {/* Bölüm soruları */}
-        <div className="mt-5 space-y-4">
-          {currentQuestions.map((q) => (
-            <QuestionField
-              key={q.id}
-              question={q}
-              value={answers[q.id]}
-              onChange={(val) => handleChange(q.id, val)}
-              lang={lang}
-              errorMsg={errorsByQ[q.id]}
-              indexNumber={questionNumbers[q.id]}
-            />
+        <div key={`q-${section.id}`} className="enter mt-10 space-y-11">
+          {sectionQs.map((q) => (
+            <QuestionField key={q.id} question={q} value={answers[q.id]} onChange={(v) => change(q.id, v)}
+              lang={lang} errorMsg={errors[q.id]} indexNumber={numbers[q.id]} />
           ))}
         </div>
       </div>
 
-      {/* Sabit başparmak dostu alt kontrol çubuğu */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-2 bg-bg/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            disabled={stepIdx === 0}
-            onClick={handlePrev}
-            className="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-line bg-raised px-5 text-sm font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink disabled:opacity-40"
-          >
-            <ArrowLeft className="size-4" />
-            <span>{t(lang, 'survey.prev')}</span>
+      {/* Başparmak çubuğu */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[760px] items-center gap-3 px-4 py-3 sm:px-6">
+          <button type="button" onClick={() => go(step - 1)} disabled={step === 0}
+            className="grid size-12 shrink-0 place-items-center rounded-full border border-line bg-raised/70 text-ink transition-colors hover:border-ink-3 disabled:opacity-35"
+            aria-label={t(lang, 'survey.prev')}>
+            <ArrowLeft size={18} strokeWidth={1.75} />
           </button>
-
-          {stepIdx < sections.length - 1 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="enter-btn inline-flex min-h-[48px] flex-1 sm:flex-none items-center justify-center gap-2 rounded-full bg-ink px-7 text-sm sm:text-base font-medium text-bg"
-            >
-              <span>{t(lang, 'survey.next')}</span>
-              <ArrowRight className="size-4" />
+          <SaveIndicator state={saveState} lang={lang} />
+          {isLast ? (
+            <button type="button" onClick={() => void submit()} disabled={submitting} className={`${btn.primary} ml-auto min-w-[150px]`}>
+              {submitting ? <Loader2 size={17} className="animate-spin" /> : <Send size={16} strokeWidth={1.75} />}
+              {t(lang, submitting ? 'survey.submitting' : 'survey.submit')}
             </button>
           ) : (
-            <button
-              type="button"
-              disabled={submitting}
-              onClick={handleSubmit}
-              className="enter-btn inline-flex min-h-[48px] flex-1 sm:flex-none items-center justify-center gap-2 rounded-full bg-clay px-7 text-sm sm:text-base font-semibold text-white disabled:opacity-60"
-            >
-              <Send className="size-4" />
-              <span>{submitting ? t(lang, 'survey.submitting') : t(lang, 'survey.submit')}</span>
+            <button type="button" onClick={next} className={`${btn.primary} ml-auto min-w-[150px]`}>
+              {t(lang, 'survey.next')}
+              <ArrowRight size={17} strokeWidth={1.75} />
             </button>
           )}
         </div>
+      </div>
+    </PublicShell>
+  )
+}
+
+function SaveIndicator({ state, lang }: { state: SaveState; lang: Lang }) {
+  if (state === 'idle') return <span className="text-[12.5px] text-ink-3">{t(lang, 'survey.autosave')}</span>
+  const map = {
+    saving: { icon: <Loader2 size={13} className="animate-spin" />, key: 'survey.saving', cls: 'text-ink-3' },
+    saved: { icon: <Check size={13} />, key: 'survey.saved', cls: 'text-ink-3' },
+    error: { icon: <CloudOff size={13} />, key: 'survey.saveError', cls: 'text-danger' },
+  } as const
+  const m = map[state]
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-1.5 truncate text-[12.5px] ${m.cls}`} role="status">
+      {m.icon}
+      <span className="truncate">{t(lang, m.key)}</span>
+    </span>
+  )
+}
+
+function ConsentGate({ kvkk, lang, onDone }: { kvkk: KvkkNoticeSetting; lang: Lang; onDone: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const accept = async () => {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/survey/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accepted: true }),
+      })
+      if (res.ok) onDone()
+      else setError(t(lang, 'error.body'))
+    } catch {
+      setError(t(lang, 'error.network'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <PublicShell signedIn>
+      <div className="reveal mx-auto max-w-[640px] px-4 pt-10 sm:px-6 sm:pt-14">
+        <Art name="privacy" className="mx-auto size-28" />
+        <h1 className="serif mt-6 text-center text-[32px] leading-tight text-ink sm:text-[40px]">{t(lang, 'consent.title')}</h1>
+        <p className="mx-auto mt-3 max-w-[48ch] text-center text-[15.5px] leading-relaxed text-ink-2">{t(lang, 'consent.body')}</p>
+        <div className="scroll-thin mt-8 max-h-[50vh] overflow-y-auto whitespace-pre-line rounded-2xl border border-line-2 bg-raised/60 p-5 text-[14px] leading-relaxed text-ink-2">
+          {kvkk[lang] || kvkk.tr}
+        </div>
+        {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
+        <button type="button" onClick={() => void accept()} disabled={busy} className={`${btn.primary} mt-6 w-full`}>
+          {t(lang, 'consent.accept')}
+        </button>
+      </div>
+    </PublicShell>
+  )
+}
+
+function NotEligible({ eligibility, history, lang }: { eligibility: EligibilityResult; history: SubmissionHistoryItem[]; lang: Lang }) {
+  const closed = eligibility.reason === 'survey_closed'
+  return (
+    <PublicShell signedIn>
+      <div className="reveal mx-auto max-w-[620px] px-4 pt-10 text-center sm:px-6 sm:pt-14">
+        <Art name={closed ? 'empty' : 'waiting'} className="mx-auto size-40" />
+        <h1 className="serif mt-6 text-[32px] leading-tight text-ink sm:text-[42px]">{t(lang, closed ? 'survey.closedTitle' : 'survey.alreadyDoneTitle')}</h1>
+        <p className="mx-auto mt-4 max-w-[50ch] text-[16px] leading-relaxed text-ink-2">
+          {t(lang, closed ? 'survey.closedBody' : 'survey.alreadyDoneBody')}
+        </p>
+        {eligibility.nextAvailableAt && (
+          <p className="mt-3 text-[14.5px] text-ink-2">
+            {t(lang, 'survey.nextAvailable')} <span className="font-medium text-ink">{fmtDate(eligibility.nextAvailableAt, lang)}</span>
+          </p>
+        )}
+        {history.length > 0 && (
+          <div className="mt-10 text-left">
+            <h2 className="text-[13.5px] text-ink-3">{t(lang, 'survey.historyTitle')}</h2>
+            <ul className="mt-3 divide-y divide-line-2 border-y border-line-2">
+              {history.map((h) => (
+                <li key={h.id} className="flex items-center justify-between gap-4 py-3.5 text-[15px]">
+                  <span className="text-ink">{h.period_key}</span>
+                  <span className="tabular text-ink-3">{fmtDate(h.submitted_at, lang)} · #{h.submission_number}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <Link href="/" className={`${btn.secondary} mt-10`}>{t(lang, 'thanks.backHome')}</Link>
       </div>
     </PublicShell>
   )

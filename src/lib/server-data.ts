@@ -11,6 +11,9 @@ import type {
   SurveyRow,
 } from './survey-types'
 import fallbackSurveyJson from '../../data/surveys/mezun-bilgi-2026.json'
+import kvkkDraftJson from '../../data/kvkk-aydinlatma-taslak.json'
+
+const kvkkDraft: KvkkNoticeSetting = kvkkDraftJson
 
 export interface KvkkNoticeSetting {
   version: string
@@ -99,7 +102,7 @@ export async function getAppSettings(): Promise<AppSettingsBundle> {
     `SELECT key, value FROM app_settings WHERE key IN ('whitelist_required', 'kvkk_notice')`
   )
   let whitelistRequired: WhitelistSetting = { enabled: false }
-  let kvkkNotice: KvkkNoticeSetting = { version: 'v0-placeholder', tr: '', en: '' }
+  let kvkkNotice: KvkkNoticeSetting = { ...kvkkDraft }
 
   for (const row of res.rows) {
     if (row.key === 'whitelist_required' && row.value && typeof row.value === 'object') {
@@ -108,10 +111,13 @@ export async function getAppSettings(): Promise<AppSettingsBundle> {
     }
     if (row.key === 'kvkk_notice' && row.value && typeof row.value === 'object') {
       const v = row.value as Partial<KvkkNoticeSetting>
-      kvkkNotice = {
-        version: typeof v.version === 'string' ? v.version : 'v0-placeholder',
-        tr: typeof v.tr === 'string' ? v.tr : '',
-        en: typeof v.en === 'string' ? v.en : '',
+      // Boş yer tutucu kayıtta taslak metin gösterilir; admin gerçek metni girince o kullanılır
+      if (typeof v.tr === 'string' && v.tr.trim()) {
+        kvkkNotice = {
+          version: typeof v.version === 'string' && v.version.trim() ? v.version : 'v1',
+          tr: v.tr,
+          en: typeof v.en === 'string' && v.en.trim() ? v.en : kvkkDraft.en,
+        }
       }
     }
   }
@@ -223,6 +229,7 @@ export async function getGraduatesWithStatus(
        ) AS last_reminded_at
      FROM graduates g
      LEFT JOIN responses r ON r.graduate_id = g.id AND r.survey_id = $1
+     WHERE g.anonymized_at IS NULL
      GROUP BY g.id
      ORDER BY g.graduation_year DESC NULLS LAST, g.full_name ASC`,
     [surveyId, activePeriod]
@@ -256,13 +263,15 @@ export async function listAdmins(): Promise<AdminUser[]> {
   return res.rows
 }
 
-export async function getGraduateLatestSubmission(surveyId: string, graduateId: string) {
-  const res = await query<{
-    id: string
-    period_key: string
-    submission_number: number
-    submitted_at: string
-  }>(
+export interface SubmissionHistoryItem {
+  id: string
+  period_key: string
+  submission_number: number
+  submitted_at: string
+}
+
+export async function getSubmissionHistory(surveyId: string, graduateId: string): Promise<SubmissionHistoryItem[]> {
+  const res = await query<SubmissionHistoryItem>(
     `SELECT id, period_key, submission_number, submitted_at::text
      FROM responses
      WHERE survey_id = $1 AND graduate_id = $2 AND status = 'submitted'
@@ -272,8 +281,38 @@ export async function getGraduateLatestSubmission(surveyId: string, graduateId: 
   return res.rows
 }
 
+export async function getDraft(
+  surveyId: string,
+  graduateId: string
+): Promise<{ answers: AnswerMap; updated_at: string } | null> {
+  const res = await query<{ answers: AnswerMap; updated_at: string }>(
+    `SELECT r.updated_at::text,
+            COALESCE(jsonb_object_agg(a.question_id, a.value) FILTER (WHERE a.question_id IS NOT NULL), '{}'::jsonb) AS answers
+     FROM responses r
+     LEFT JOIN answers a ON a.response_id = r.id
+     WHERE r.survey_id = $1 AND r.graduate_id = $2 AND r.status = 'draft'
+     GROUP BY r.id
+     LIMIT 1`,
+    [surveyId, graduateId]
+  )
+  return res.rows[0] ?? null
+}
+
+/** KVKK: mezunun onayladığı son metin sürümü */
+export async function getLatestConsentVersion(graduateId: string): Promise<string | null> {
+  const res = await query<{ text_version: string }>(
+    `SELECT text_version FROM consents WHERE graduate_id = $1 ORDER BY accepted_at DESC LIMIT 1`,
+    [graduateId]
+  )
+  return res.rows[0]?.text_version ?? null
+}
+
+let logoCache: Buffer | null | undefined
+
 export function getLogoBuffer(): Buffer | null {
-  const logoPath = path.join(process.cwd(), 'public', 'brand', 'fbu-logo.png')
-  if (!fs.existsSync(logoPath)) return null
-  return fs.readFileSync(logoPath)
+  if (logoCache === undefined) {
+    const logoPath = path.join(process.cwd(), 'public', 'brand', 'fbu-logo.png')
+    logoCache = fs.existsSync(logoPath) ? fs.readFileSync(logoPath) : null
+  }
+  return logoCache
 }

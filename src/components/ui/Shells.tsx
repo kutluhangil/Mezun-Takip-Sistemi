@@ -3,117 +3,108 @@
 import React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { BarChart3, ClipboardList, FileDown, Home, LayoutGrid, ListChecks, LogIn, LogOut, Settings, Users } from 'lucide-react'
 import { t } from '@/lib/i18n'
-import { SiteFooter, TopNav, type NavItem } from './AppShell'
+import type { AdminUser } from '@/lib/survey-types'
+import { btn, MobileNav, SiteFooter, TopBar, type NavItem } from './AppShell'
 import { useUI } from './UIProvider'
 
+/**
+ * Mezun tarafı kabuğu. `focus` kipinde (anket doldurma) alt menü ve footer gizlenir,
+ * yerine sayfanın kendi sabit İleri/Geri çubuğu gelir.
+ */
 export function PublicShell({
   children,
-  hideMobileNav = false,
-  graduateEmail,
+  signedIn = false,
+  focus = false,
 }: {
   children: React.ReactNode
-  hideMobileNav?: boolean
-  graduateEmail?: string
+  signedIn?: boolean
+  focus?: boolean
 }) {
   const { lang } = useUI()
   const router = useRouter()
 
   const items: NavItem[] = [
-    { href: '/', label: t(lang, 'nav.home'), icon: 'home', exact: true },
-    { href: graduateEmail ? '/anket' : '/giris', label: t(lang, 'nav.survey'), icon: 'survey' },
-    { href: '/admin', label: t(lang, 'nav.admin'), icon: 'admin' },
+    { href: '/', label: t(lang, 'nav.home'), icon: Home, exact: true },
+    { href: signedIn ? '/anket' : '/giris', label: t(lang, 'nav.survey'), icon: ClipboardList },
+    { href: '/admin/giris', label: t(lang, 'nav.teacher'), icon: LogIn },
   ]
 
-  const handleLogout = async () => {
+  const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/giris')
+    router.push('/')
     router.refresh()
   }
 
   return (
-    <div className="min-h-dvh flex flex-col">
-      <TopNav
-        items={items}
-        hideMobileNav={hideMobileNav}
-        rightSlot={
-          graduateEmail ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              title={t(lang, 'survey.signOut')}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-raised/80 px-3 text-xs font-medium text-ink-2 hover:border-ink-3 hover:text-ink"
-            >
-              <LogOut className="size-3.5" />
-              <span className="hidden sm:inline">{t(lang, 'survey.signOut')}</span>
+    <div className="app-paper flex min-h-dvh flex-col">
+      <TopBar
+        items={focus ? [] : items}
+        right={
+          signedIn ? (
+            <button type="button" onClick={logout} className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-sunk hover:text-ink"
+              aria-label={t(lang, 'survey.signOut')} title={t(lang, 'survey.signOut')}>
+              <LogOut size={17} strokeWidth={1.75} />
             </button>
           ) : undefined
         }
       />
-      <main className={`flex-1 ${hideMobileNav ? 'pb-28' : 'pb-24 md:pb-0'}`}>{children}</main>
-      {!hideMobileNav && <SiteFooter />}
+      <main className={`flex-1 ${focus ? 'pb-36' : 'pb-[calc(62px+env(safe-area-inset-bottom))] md:pb-0'}`}>{children}</main>
+      {!focus && <SiteFooter />}
+      {!focus && <MobileNav items={items} />}
     </div>
   )
 }
 
-export function AdminShell({
-  children,
-  adminName,
-  adminRole,
-}: {
-  children: React.ReactNode
-  adminName?: string
-  adminRole?: 'owner' | 'viewer'
-}) {
+export function AdminShell({ children, admin }: { children: React.ReactNode; admin: AdminUser }) {
   const { lang } = useUI()
   const router = useRouter()
 
   const items: NavItem[] = [
-    { href: '/admin', label: t(lang, 'nav.overview'), icon: 'overview', exact: true },
-    { href: '/admin/analiz', label: t(lang, 'nav.analytics'), icon: 'analytics' },
-    { href: '/admin/yanitlar', label: t(lang, 'nav.responses'), icon: 'responses' },
-    { href: '/admin/mezunlar', label: t(lang, 'nav.graduates'), icon: 'graduates' },
-    { href: '/admin/rapor', label: t(lang, 'nav.reports'), icon: 'reports' },
+    { href: '/admin', label: t(lang, 'nav.overview'), short: t(lang, 'nav.overviewShort'), icon: LayoutGrid, exact: true },
+    { href: '/admin/analiz', label: t(lang, 'nav.analytics'), short: t(lang, 'nav.analyticsShort'), icon: BarChart3 },
+    { href: '/admin/yanitlar', label: t(lang, 'nav.responses'), icon: ListChecks },
+    { href: '/admin/mezunlar', label: t(lang, 'nav.graduates'), icon: Users },
+    { href: '/admin/rapor', label: t(lang, 'nav.reports'), icon: FileDown },
+    { href: '/admin/ayarlar', label: t(lang, 'nav.settings'), icon: Settings },
   ]
 
-  const handleLogout = async () => {
+  const logout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' })
     router.push('/admin/giris')
     router.refresh()
   }
 
   return (
-    <div className="min-h-dvh flex flex-col">
-      <TopNav
+    <div className="app-paper flex min-h-dvh flex-col">
+      <TopBar
         items={items}
-        rightSlot={
-          <div className="flex items-center gap-2">
-            {adminRole && (
-              <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-line bg-sunk px-3 py-1 text-xs font-medium text-ink-2">
-                <span className={`size-2 rounded-full ${adminRole === 'owner' ? 'bg-clay' : 'bg-sage'}`} />
-                {adminName ? `${adminName} · ` : ''}
-                {t(lang, adminRole === 'owner' ? 'admin.roleOwner' : 'admin.roleViewer')}
-              </span>
-            )}
-            <Link
-              href="/giris"
-              className="hidden sm:inline-flex h-10 items-center rounded-full border border-line bg-raised/70 px-3 text-xs font-medium text-ink-2 hover:text-ink"
-            >
-              {t(lang, 'nav.survey')}
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-raised/80 px-3 text-xs font-medium text-ink-2 hover:border-danger hover:text-danger"
-            >
-              <LogOut className="size-3.5" />
-              <span className="hidden sm:inline">{t(lang, 'admin.logout')}</span>
+        home="/admin"
+        right={
+          <>
+            <span className="ml-1 hidden items-center gap-2 text-[13px] text-ink-2 xl:inline-flex" title={admin.email}>
+              <span className={`size-2 rounded-full ${admin.role === 'owner' ? 'bg-clay' : 'bg-sage'}`} />
+              {admin.full_name}
+            </span>
+            <button type="button" onClick={logout} className="grid size-10 place-items-center rounded-full text-ink-2 transition-colors hover:bg-sunk hover:text-ink"
+              aria-label={t(lang, 'admin.logout')} title={t(lang, 'admin.logout')}>
+              <LogOut size={17} strokeWidth={1.75} />
             </button>
-          </div>
+          </>
         }
       />
-      <main className="flex-1 pb-24 md:pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 pb-[calc(84px+env(safe-area-inset-bottom))] sm:px-6 md:pb-16">{children}</main>
+      <MobileNav items={items} />
     </div>
+  )
+}
+
+export function BackHome() {
+  const { lang } = useUI()
+  return (
+    <Link href="/" className={btn.secondary}>
+      {t(lang, 'notFound.home')}
+    </Link>
   )
 }

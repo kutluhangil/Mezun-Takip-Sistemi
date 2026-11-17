@@ -1,15 +1,17 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, BarChart3, Download, Users } from 'lucide-react'
-import { aggregateSurvey, filterResponses, formatAnswerLabel, type FilterCriteria } from '@/lib/aggregate'
+import { ArrowUpRight } from 'lucide-react'
+import { extractSingleChoice, formatAnswerLabel } from '@/lib/aggregate'
 import { t } from '@/lib/i18n'
 import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import { Art } from '@/components/ui/Art'
+import { PageHeader } from '@/components/ui/AppShell'
 import { AdminShell } from '@/components/ui/Shells'
-import { useUI } from '@/components/ui/UIProvider'
-import { AdminFilterBar } from './AdminFilterBar'
+import { FilterBar, fmtDateTime, pct, Stat, useSurveyFilters } from './kit'
 import { QuestionChartCard } from './QuestionChartCard'
+
+const HIGHLIGHTS = ['q_work_status', 'q_satisfaction', 'q_job_title', 'q_recommend_uni']
 
 export function AdminOverviewClient({
   admin,
@@ -22,171 +24,72 @@ export function AdminOverviewClient({
   responses: SubmittedResponseItem[]
   totalGraduates: number
 }) {
-  const { lang } = useUI()
-  const [filters, setFilters] = useState<FilterCriteria>({
-    period: 'all',
-    graduationYear: 'all',
-    graduationTerm: 'all',
-    workStatus: 'all',
-  })
-
-  const filtered = useMemo(() => filterResponses(responses, filters), [responses, filters])
-  const summary = useMemo(
-    () =>
-      aggregateSurvey({
-        definition: survey.definition,
-        responses: filtered,
-        allResponsesForFacets: responses,
-        totalGraduatesInWhitelist: totalGraduates,
-        lang,
-      }),
-    [survey.definition, filtered, responses, totalGraduates, lang]
-  )
-
-  const workAgg = summary.questions.find((q) => q.question.id === 'q_work_status')
-  const satAgg = summary.questions.find((q) => q.question.id === 'q_satisfaction')
-  const qWork = survey.definition.questions.find((q) => q.id === 'q_work_status')
+  const { filters, setFilters, filtered, summary, lang } = useSurveyFilters(survey, responses, totalGraduates)
+  const workQ = survey.definition.questions.find((q) => q.id === 'q_work_status')
+  const highlights = summary.questions.filter((a) => HIGHLIGHTS.includes(a.question.id))
 
   return (
-    <AdminShell adminName={admin.full_name} adminRole={admin.role}>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-clay-ink">
-              {survey.active_period} · {survey.is_open ? (lang === 'en' ? 'Active' : 'Anket Açık') : lang === 'en' ? 'Closed' : 'Kapalı'}
-            </p>
-            <h1 className="serif mt-1 text-3xl sm:text-4xl font-normal text-ink">{t(lang, 'dash.title')}</h1>
-            <p className="mt-1 text-sm text-ink-2">{t(lang, 'dash.subtitle')}</p>
-          </div>
+    <AdminShell admin={admin}>
+      <PageHeader
+        kicker={
+          <>
+            <span className="inline-flex items-center gap-2 text-ink-2">
+              {survey.is_open ? <span className="live-dot" /> : <span className="size-2 rounded-full bg-ink-3" />}
+              {t(lang, survey.is_open ? 'land.open' : 'land.closed')}
+            </span>
+            <span>{t(lang, 'survey.periodTag')} <span className="tabular text-ink-2">{survey.active_period}</span></span>
+          </>
+        }
+        title={t(lang, 'dash.title')}
+        lede={t(lang, 'dash.subtitle')}
+      />
 
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/analiz"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-raised px-4 text-xs sm:text-sm font-medium text-ink hover:border-ink-3"
-            >
-              <BarChart3 className="size-4 text-clay" />
-              {t(lang, 'nav.analytics')}
-            </Link>
-            <Link
-              href="/admin/rapor"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-xs sm:text-sm font-medium text-bg hover:opacity-90"
-            >
-              <Download className="size-4" />
-              {t(lang, 'nav.reports')}
-            </Link>
-          </div>
-        </div>
+      <div className="mt-8"><FilterBar survey={survey} summary={summary} filters={filters} onChange={setFilters} /></div>
 
-        <AdminFilterBar
-          filters={filters}
-          onChange={setFilters}
-          periods={summary.periods}
-          graduationYears={summary.graduationYears}
-        />
-
-        {/* KPI Şeridi */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-          <div className="rounded-2xl border border-line-2 bg-raised/90 p-4 sm:p-5">
-            <p className="text-xs font-medium text-ink-3">{t(lang, 'dash.kpiResponses')}</p>
-            <p className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tabular text-ink">
-              {summary.totalResponses}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-line-2 bg-raised/90 p-4 sm:p-5">
-            <p className="text-xs font-medium text-ink-3">{t(lang, 'dash.kpiGraduates')}</p>
-            <p className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tabular text-ink">
-              {summary.uniqueGraduatesResponded}
-            </p>
-            {totalGraduates > 0 && (
-              <p className="mt-1 text-xs tabular text-ink-3">
-                {t(lang, 'dash.kpiSubWhitelist', {
-                  pct: summary.participationRate,
-                  total: totalGraduates,
-                })}
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-line-2 bg-raised/90 p-4 sm:p-5">
-            <p className="text-xs font-medium text-ink-3">{t(lang, 'dash.kpiEmployed')}</p>
-            <p className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tabular text-clay-ink">
-              %{summary.employmentRate}
-            </p>
-            <p className="mt-1 text-xs tabular text-ink-3">
-              {summary.inFieldEmployedCount} {lang === 'en' ? 'in-field' : 'alan içi'}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-line-2 bg-raised/90 p-4 sm:p-5">
-            <p className="text-xs font-medium text-ink-3">{t(lang, 'dash.kpiSatisfaction')}</p>
-            <p className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tabular text-ink">
-              {summary.meanSatisfaction}
-            </p>
-          </div>
-
-          <div className="col-span-2 lg:col-span-1 rounded-2xl border border-line-2 bg-raised/90 p-4 sm:p-5">
-            <p className="text-xs font-medium text-ink-3">{t(lang, 'dash.kpiRecommend')}</p>
-            <p className="mt-2 font-mono text-2xl sm:text-3xl font-semibold tabular text-sage">
-              %{summary.recommendRate}
-            </p>
-          </div>
-        </div>
-
-        {/* Öne çıkan iki grafik */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {workAgg && <QuestionChartCard agg={workAgg} />}
-          {satAgg && <QuestionChartCard agg={satAgg} />}
-        </div>
-
-        {/* Son gönderilen yanıtlar */}
-        <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="serif text-2xl font-normal text-ink">{t(lang, 'dash.recentTitle')}</h2>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/admin/mezunlar"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-2 hover:text-ink"
-              >
-                <Users className="size-3.5" />
-                {t(lang, 'nav.graduates')}
-              </Link>
-              <Link
-                href="/admin/yanitlar"
-                className="inline-flex items-center gap-1 text-xs font-medium text-clay-ink hover:underline"
-              >
-                {lang === 'en' ? 'View all' : 'Tümünü gör'}
-                <ArrowRight className="size-3" />
-              </Link>
-            </div>
-          </div>
-
-          {filtered.length === 0 ? (
-            <p className="mt-4 text-sm text-ink-3">{t(lang, 'dash.noResponses')}</p>
-          ) : (
-            <div className="mt-4 divide-y divide-line-2">
-              {filtered.slice(0, 8).map((r) => (
-                <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                  <div>
-                    <span className="font-medium text-ink">{r.graduate_name}</span>
-                    <span className="ml-2 text-xs font-mono tabular text-ink-3">
-                      {r.student_number || r.graduate_email} · {r.graduation_year ?? '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-ink-2">
-                    <span className="rounded-full border border-line bg-surface px-2.5 py-0.5">
-                      {qWork ? formatAnswerLabel(qWork, r.answers.q_work_status, lang) : '—'}
-                    </span>
-                    <span className="font-mono tabular text-ink-3">
-                      {new Date(r.submitted_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'tr-TR')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Stat label={t(lang, 'dash.kpiResponses')} value={summary.totalResponses}
+          sub={t(lang, 'dash.kpiSubWhitelist', { total: summary.totalGraduatesInWhitelist, pct: summary.participationRate })} />
+        <Stat label={t(lang, 'dash.kpiEmployed')} value={pct(summary.employmentRate)} accent
+          sub={t(lang, 'dash.kpiEmployedSub', { n: summary.inFieldEmployedCount })} />
+        <Stat label={t(lang, 'dash.kpiSatisfaction')} value={summary.meanSatisfaction || '—'} sub="0–10" />
+        <Stat label={t(lang, 'dash.kpiRecommend')} value={pct(summary.recommendRate)} />
       </div>
+
+      {filtered.length === 0 ? (
+        <div className="mx-auto mt-16 max-w-[440px] text-center">
+          <Art name="admin" className="mx-auto size-36" />
+          <p className="serif mt-5 text-[24px] text-ink">{t(lang, 'dash.emptyTitle')}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{t(lang, 'dash.noResponses')}</p>
+        </div>
+      ) : (
+        <>
+          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            {highlights.map((agg) => <QuestionChartCard key={agg.question.id} agg={agg} />)}
+          </div>
+
+          <section className="mt-14">
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="serif text-[26px] text-ink">{t(lang, 'dash.recentTitle')}</h2>
+              <Link href="/admin/yanitlar" className="inline-flex items-center gap-1 text-[14px] text-ink-2 underline-offset-4 hover:text-ink hover:underline">
+                {t(lang, 'nav.responses')} <ArrowUpRight size={14} />
+              </Link>
+            </div>
+            <ul className="mt-5 divide-y divide-line-2 border-y border-line-2">
+              {filtered.slice(0, 8).map((r) => (
+                <li key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 px-1 py-4 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+                  <span className="text-[13px] tabular text-ink-3">{fmtDateTime(r.submitted_at, lang)}</span>
+                  <span className="col-span-2 min-w-0 truncate text-[15px] text-ink sm:col-span-1">
+                    {workQ ? formatAnswerLabel(workQ, r.answers.q_work_status, lang) : extractSingleChoice(r.answers.q_work_status)?.choice}
+                  </span>
+                  <span className="row-start-1 text-right text-[13px] tabular text-ink-3 sm:row-auto">
+                    {r.period_key} · {typeof r.answers.q_satisfaction === 'number' ? `${r.answers.q_satisfaction}/10` : '—'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      )}
     </AdminShell>
   )
 }

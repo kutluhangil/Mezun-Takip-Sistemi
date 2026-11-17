@@ -1,416 +1,216 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ChevronDown, MailCheck, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Mail } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { Art } from '@/components/ui/Art'
+import { btn, Notice } from '@/components/ui/AppShell'
 import { PublicShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
+import { OtpInput } from './OtpInput'
 
-export function GraduateLoginClient({
-  kvkkTextTr,
-  kvkkTextEn,
-  showDemoLogin = false,
-}: {
-  kvkkTextTr: string
-  kvkkTextEn: string
-  showDemoLogin?: boolean
-}) {
+type Term = 'guz' | 'bahar' | 'yaz'
+const TERMS: Term[] = ['guz', 'bahar', 'yaz']
+const RESEND_SECONDS = 30
+
+function Field({ id, label, children, hint }: { id: string; label: string; children: React.ReactNode; hint?: string }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-[14.5px] font-medium text-ink">{label}</label>
+      {children}
+      {hint && <p className="mt-1.5 text-[13px] text-ink-3">{hint}</p>}
+    </div>
+  )
+}
+
+export function GraduateLoginClient({ kvkkTextTr, kvkkTextEn }: { kvkkTextTr: string; kvkkTextEn: string }) {
   const { lang } = useUI()
   const router = useRouter()
+  const thisYear = new Date().getFullYear()
+  const years = Array.from({ length: thisYear + 2 - 2018 }, (_, i) => thisYear + 1 - i)
 
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: currentYear - 2018 + 2 }, (_, i) => currentYear + 1 - i)
-
-  const [step, setStep] = useState<'form' | 'otp'>('form')
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [studentNumber, setStudentNumber] = useState('')
-  const [graduationYear, setGraduationYear] = useState<string>(String(currentYear))
-  const [graduationTerm, setGraduationTerm] = useState<'guz' | 'bahar' | 'yaz'>('bahar')
-  const [kvkkAccepted, setKvkkAccepted] = useState(false)
-  const [kvkkOpen, setKvkkOpen] = useState(false)
-
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<'info' | 'code'>('info')
+  const [form, setForm] = useState({ fullName: '', email: '', studentNumber: '', graduationYear: String(thisYear), graduationTerm: '' as Term | '' })
+  const [kvkk, setKvkk] = useState(false)
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
   const [devCode, setDevCode] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
 
-  const triggerShake = () => {
-    setShake(false)
-    requestAnimationFrame(() => setShake(true))
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(id)
+  }, [cooldown])
+
+  const fail = (msg: string) => {
+    setError(msg)
+    setShake(true)
+    setTimeout(() => setShake(false), 450)
   }
 
-  const handleDemoLogin = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      const res = await fetch('/api/auth/demo-login', { method: 'POST' })
-      const data = (await res.json()) as { error?: string; redirectTo?: string }
-      if (!res.ok) {
-        setError(data.error || 'Demo girişi açılamadı.')
-        return
-      }
-      router.push(data.redirectTo || '/anket')
-      router.refresh()
-    } catch {
-      setError('Bağlantı hatası oluştu.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const requestCode = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!form.graduationTerm) return fail(t(lang, 'login.termRequired'))
+    if (!kvkk) return fail(t(lang, 'login.kvkkRequired'))
+    setBusy(true)
     setError(null)
-    setLoading(true)
     try {
       const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName,
-          email,
-          studentNumber,
-          graduationYear,
-          graduationTerm,
-          kvkkAccepted,
-          lang,
-        }),
+        body: JSON.stringify({ ...form, graduationYear: Number(form.graduationYear), kvkkAccepted: kvkk, lang }),
       })
-      const data = (await res.json()) as { error?: string; devCode?: string }
-      if (!res.ok) {
-        setError(data.error || 'Kod gönderilemedi.')
-        triggerShake()
-        return
-      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return fail(data.error || t(lang, 'error.body'))
       setDevCode(data.devCode ?? null)
-      setDigits(['', '', '', '', '', ''])
-      setStep('otp')
-      setTimeout(() => otpRefs.current[0]?.focus(), 80)
+      setCode('')
+      setStep('code')
+      setCooldown(RESEND_SECONDS)
     } catch {
-      setError('Bağlantı hatası oluştu.')
-      triggerShake()
+      fail(t(lang, 'error.network'))
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
-  const handleDigitChange = (idx: number, raw: string) => {
-    const clean = raw.replace(/\D/g, '')
-    if (!clean) {
-      const next = [...digits]
-      next[idx] = ''
-      setDigits(next)
-      return
-    }
-    if (clean.length > 1) {
-      const next = [...digits]
-      for (let i = 0; i < 6 && idx + i < 6; i++) {
-        next[idx + i] = clean[i]
-      }
-      setDigits(next)
-      const target = Math.min(5, idx + clean.length)
-      otpRefs.current[target]?.focus()
-      return
-    }
-    const next = [...digits]
-    next[idx] = clean
-    setDigits(next)
-    if (idx < 5) otpRefs.current[idx + 1]?.focus()
-  }
-
-  const handleDigitKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[idx] && idx > 0) {
-      otpRefs.current[idx - 1]?.focus()
-    }
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const verify = async (value = code) => {
+    if (value.length !== 6 || busy) return
+    setBusy(true)
     setError(null)
-    setLoading(true)
-    const code = digits.join('')
     try {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, lang }),
+        body: JSON.stringify({ email: form.email, code: value, lang }),
       })
-      const data = (await res.json()) as { error?: string; redirectTo?: string }
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error || 'Kod doğrulanamadı.')
-        triggerShake()
-        return
+        setCode('')
+        return fail(data.error || t(lang, 'error.body'))
       }
       router.push(data.redirectTo || '/anket')
       router.refresh()
     } catch {
-      setError('Doğrulama sırasında bağlantı hatası.')
-      triggerShake()
+      fail(t(lang, 'error.network'))
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
-  const kvkkDisplayText =
-    (lang === 'en' ? kvkkTextEn.trim() : kvkkTextTr.trim()) || t(lang, 'login.kvkkPending')
+  const kvkkText = (lang === 'en' ? kvkkTextEn : kvkkTextTr) || t(lang, 'login.kvkkPending')
 
   return (
     <PublicShell>
-      <div className="mx-auto max-w-xl px-4 py-8 sm:px-6 sm:py-12">
-        <div
-          className={`enter rounded-3xl border border-line-2 bg-raised/90 p-5 sm:p-8 shadow-[var(--shadow)] ${
-            shake ? 'shake' : ''
-          }`}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-clay-ink">
-            {t(lang, 'brand.uni')}
-          </p>
-          <h1 className="serif mt-2 text-3xl sm:text-4xl font-normal text-ink">
-            {step === 'form' ? t(lang, 'login.title') : t(lang, 'login.otpTitle')}
+      <div className="mx-auto max-w-[520px] px-4 pt-8 sm:px-6 sm:pt-12">
+        <div className="reveal text-center">
+          <Art name="login" priority className="mx-auto size-28 sm:size-36" />
+          <p className="mt-5 text-[13.5px] text-ink-3">{t(lang, step === 'info' ? 'login.step1' : 'login.step2')}</p>
+          <h1 className="serif mt-2 text-[36px] leading-tight text-ink sm:text-[44px]">
+            {t(lang, step === 'info' ? 'login.title' : 'login.otpTitle')}
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-ink-2">
-            {step === 'form' ? (
-              t(lang, 'login.subtitle')
-            ) : (
+          <p className="mx-auto mt-3 max-w-[42ch] text-[15.5px] leading-relaxed text-ink-2">
+            {step === 'info' ? t(lang, 'login.subtitle') : (
               <>
-                <span className="font-semibold text-ink">{email}</span> {t(lang, 'login.otpSubtitle')}
+                <span className="font-medium text-ink">{form.email}</span> {t(lang, 'login.otpSubtitle')}
               </>
             )}
           </p>
+        </div>
 
-          {error && (
-            <div
-              role="alert"
-              className="mt-5 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
-            >
-              {error}
-            </div>
-          )}
+        <div className={`mt-9 ${shake ? 'shake' : ''}`}>
+          {error && <div className="mb-5"><Notice tone="error">{error}</Notice></div>}
 
-          {showDemoLogin && step === 'form' && (
-            <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-dashed border-clay/60 bg-band/25 px-4 py-3">
-              <div className="text-xs sm:text-sm text-ink-2">
-                <strong className="font-semibold text-clay-ink">
-                  {lang === 'en' ? 'Temporary Demo:' : 'Geçici Demo Önizleme:'}
-                </strong>{' '}
-                {lang === 'en'
-                  ? 'Skip email code and inspect the 5-step survey directly.'
-                  : 'E-posta kodu beklemeden doğrudan anket ekranını aç.'}
-              </div>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleDemoLogin}
-                className="shrink-0 inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-full bg-clay px-4 text-xs sm:text-sm font-medium text-white hover:opacity-95 disabled:opacity-60"
-              >
-                <span>{lang === 'en' ? 'Open Survey' : 'Ankete Geç'}</span>
-                <ArrowRight className="size-3.5" />
-              </button>
-            </div>
-          )}
-
-          {step === 'form' ? (
-            <form onSubmit={handleRequestOtp} className="mt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ink" htmlFor="fullName">
-                  {t(lang, 'login.fullName')} <span className="text-clay">*</span>
-                </label>
-                <input
-                  id="fullName"
-                  required
-                  autoComplete="name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 text-base text-ink focus:border-clay focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink" htmlFor="email">
-                  {t(lang, 'login.email')} <span className="text-clay">*</span>
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  inputMode="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ad.soyad@gmail.com"
-                  className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 text-base text-ink focus:border-clay focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink" htmlFor="studentNumber">
-                  {t(lang, 'login.studentNumber')} <span className="text-clay">*</span>
-                </label>
-                <input
-                  id="studentNumber"
-                  inputMode="numeric"
-                  required
-                  value={studentNumber}
-                  onChange={(e) => setStudentNumber(e.target.value)}
-                  placeholder="220401001"
-                  className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 font-mono tabular text-base text-ink focus:border-clay focus:outline-none"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-ink" htmlFor="gradYear">
-                    {t(lang, 'login.gradYear')} <span className="text-clay">*</span>
-                  </label>
-                  <select
-                    id="gradYear"
-                    value={graduationYear}
-                    onChange={(e) => setGraduationYear(e.target.value)}
-                    className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 tabular text-base text-ink focus:border-clay focus:outline-none"
-                  >
-                    {years.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
+          {step === 'info' ? (
+            <form onSubmit={requestCode} className="enter space-y-5" noValidate>
+              <Field id="fullName" label={t(lang, 'login.fullName')}>
+                <input id="fullName" className="field" autoComplete="name" required minLength={2} maxLength={120}
+                  value={form.fullName} onChange={set('fullName')} />
+              </Field>
+              <Field id="email" label={t(lang, 'login.email')} hint={t(lang, 'login.emailHint')}>
+                <input id="email" type="email" className="field" autoComplete="email" inputMode="email" required
+                  placeholder="ad.soyad@gmail.com" value={form.email} onChange={set('email')} />
+              </Field>
+              <Field id="studentNumber" label={t(lang, 'login.studentNumber')}>
+                <input id="studentNumber" className="field font-mono tabular" inputMode="numeric" required minLength={4} maxLength={32}
+                  placeholder="220401001" value={form.studentNumber} onChange={set('studentNumber')} />
+              </Field>
+              <div className="grid gap-5 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                <Field id="graduationYear" label={t(lang, 'login.gradYear')}>
+                  <select id="graduationYear" className="field tabular" value={form.graduationYear} onChange={set('graduationYear')}>
+                    {years.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
-                </div>
-
+                </Field>
                 <div>
-                  <span className="block text-sm font-medium text-ink">
-                    {t(lang, 'login.gradTerm')} <span className="text-clay">*</span>
-                  </span>
-                  <div className="mt-1.5 grid grid-cols-3 gap-1.5">
-                    {(
-                      [
-                        ['guz', t(lang, 'login.termGuz')],
-                        ['bahar', t(lang, 'login.termBahar')],
-                        ['yaz', t(lang, 'login.termYaz')],
-                      ] as const
-                    ).map(([val, lbl]) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => setGraduationTerm(val)}
-                        className={`min-h-[48px] rounded-xl border text-sm font-medium transition-colors ${
-                          graduationTerm === val
-                            ? 'border-clay bg-band/35 text-ink'
-                            : 'border-line bg-surface text-ink-2 hover:border-ink-3'
-                        }`}
-                      >
-                        {lbl}
+                  <span id="termLabel" className="mb-2 block text-[14.5px] font-medium text-ink">{t(lang, 'login.gradTerm')}</span>
+                  <div role="radiogroup" aria-labelledby="termLabel" className="grid grid-cols-3 gap-2">
+                    {TERMS.map((term) => (
+                      <button key={term} type="button" role="radio" aria-checked={form.graduationTerm === term}
+                        onClick={() => setForm((f) => ({ ...f, graduationTerm: term }))}
+                        className="choice !min-h-12 justify-center !px-2 text-center">
+                        {t(lang, `login.term${term === 'guz' ? 'Guz' : term === 'bahar' ? 'Bahar' : 'Yaz'}`)}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-line-2 bg-sunk/60 p-4">
-                <button
-                  type="button"
-                  onClick={() => setKvkkOpen((o) => !o)}
-                  className="flex w-full items-center justify-between text-left text-sm font-medium text-ink"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <ShieldCheck className="size-4 text-clay" />
-                    {t(lang, 'login.kvkkTitle')}
-                  </span>
-                  <ChevronDown className={`size-4 text-ink-3 transition-transform ${kvkkOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {kvkkOpen && (
-                  <p className="mt-3 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-ink-2">
-                    {kvkkDisplayText}
-                  </p>
-                )}
+              <details className="rounded-xl border border-line-2 bg-sunk/50">
+                <summary className="flex min-h-12 items-center justify-between gap-3 px-4 text-[14.5px] text-ink">
+                  {t(lang, 'login.kvkkTitle')}
+                  <ChevronDown size={16} className="chev text-ink-3 transition-transform" />
+                </summary>
+                <div className="scroll-thin max-h-56 overflow-y-auto whitespace-pre-line px-4 pb-4 text-[13.5px] leading-relaxed text-ink-2">{kvkkText}</div>
+              </details>
+              <button type="button" role="checkbox" aria-checked={kvkk} onClick={() => setKvkk((v) => !v)} className="choice items-start">
+                <span className="mark mt-0.5 rounded-md">{kvkk && <CheckIcon />}</span>
+                <span className="text-[14.5px] leading-relaxed text-ink-2">{t(lang, 'login.kvkkAccept')}</span>
+              </button>
 
-                <label className="mt-3 flex cursor-pointer items-start gap-3 pt-1">
-                  <input
-                    type="checkbox"
-                    checked={kvkkAccepted}
-                    onChange={(e) => setKvkkAccepted(e.target.checked)}
-                    className="mt-1 size-5 shrink-0 accent-[#d97757]"
-                  />
-                  <span className="text-xs sm:text-sm leading-snug text-ink-2">
-                    {t(lang, 'login.kvkkAccept')}
-                  </span>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="enter-btn mt-2 flex w-full min-h-[52px] items-center justify-center gap-2 rounded-full bg-ink px-6 text-base font-medium text-bg disabled:opacity-60"
-              >
-                <span>{loading ? t(lang, 'login.sending') : t(lang, 'login.sendCode')}</span>
-                <ArrowRight className="size-4" />
+              <button type="submit" disabled={busy} className={`${btn.primary} w-full`}>
+                {busy ? t(lang, 'login.sending') : t(lang, 'login.sendCode')}
+                {!busy && <Mail size={17} strokeWidth={1.75} />}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="mt-6 space-y-5">
+            <div className="enter space-y-6">
+              <OtpInput value={code} onChange={setCode} onComplete={(v) => void verify(v)} invalid={Boolean(error)} label={t(lang, 'login.otpTitle')} />
               {devCode && (
-                <div className="rounded-2xl border border-clay/45 bg-band/30 px-4 py-3 text-sm text-ink">
-                  <span>{t(lang, 'login.devHint')} </span>
-                  <strong className="font-mono text-base tracking-widest text-clay-ink">{devCode}</strong>
-                </div>
+                <Notice tone="warn">
+                  {t(lang, 'login.devHint')} <span className="font-mono font-semibold tracking-widest">{devCode}</span>
+                </Notice>
               )}
-
-              <div className="grid grid-cols-6 gap-2 sm:gap-3">
-                {digits.map((d, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => {
-                      otpRefs.current[idx] = el
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={d}
-                    onChange={(e) => handleDigitChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                    aria-label={`Kod ${idx + 1}`}
-                    className="min-h-[54px] w-full rounded-xl border border-line bg-surface text-center font-mono text-xl font-semibold tabular text-ink focus:border-clay focus:outline-none"
-                  />
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || digits.join('').length !== 6}
-                className="enter-btn flex w-full min-h-[52px] items-center justify-center gap-2 rounded-full bg-ink px-6 text-base font-medium text-bg disabled:opacity-50"
-              >
-                <MailCheck className="size-4" />
-                <span>{loading ? t(lang, 'login.verifying') : t(lang, 'login.otpVerify')}</span>
+              <button type="button" onClick={() => void verify()} disabled={busy || code.length !== 6} className={`${btn.primary} w-full`}>
+                {busy ? t(lang, 'login.verifying') : t(lang, 'login.otpVerify')}
+                {!busy && <ArrowRight size={17} strokeWidth={1.75} />}
               </button>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null)
-                    setStep('form')
-                  }}
-                  className="min-h-[44px] px-2 text-sm text-ink-2 hover:text-ink underline underline-offset-4"
-                >
-                  {t(lang, 'login.changeEmail')}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
+                <button type="button" onClick={() => { setStep('info'); setError(null) }} className={btn.ghost}>
+                  <ArrowLeft size={15} /> {t(lang, 'login.changeEmail')}
                 </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleRequestOtp}
-                  className="min-h-[44px] px-2 text-sm font-medium text-clay-ink hover:underline underline-offset-4"
-                >
-                  {t(lang, 'login.resend')}
+                <button type="button" onClick={() => void requestCode()} disabled={cooldown > 0 || busy} className={`${btn.ghost} tabular disabled:opacity-50`}>
+                  {cooldown > 0 ? t(lang, 'login.resendIn', { s: cooldown }) : t(lang, 'login.resend')}
                 </button>
               </div>
-            </form>
+              <p className="text-center text-[13px] leading-relaxed text-ink-3">{t(lang, 'login.spamHint')}</p>
+            </div>
           )}
         </div>
       </div>
     </PublicShell>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3.5 8.5 3 3 6-7" />
+    </svg>
   )
 }

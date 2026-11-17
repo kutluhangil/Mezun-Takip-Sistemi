@@ -2,142 +2,82 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Lock } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { Art } from '@/components/ui/Art'
+import { btn, Notice } from '@/components/ui/AppShell'
 import { PublicShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 
-export function AdminLoginClient({ showDemoLogin = false }: { showDemoLogin?: boolean }) {
+export function AdminLoginClient() {
   const { lang } = useUI()
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [show, setShow] = useState(false)
+  const [remember, setRemember] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    setBusy(true)
     setError(null)
-    setLoading(true)
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: fd.get('email'), password: fd.get('password'), remember }),
       })
-      const data = (await res.json()) as { error?: string }
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error || 'Giriş başarısız.')
-        setShake(false)
-        requestAnimationFrame(() => setShake(true))
+        setError(data.error || t(lang, 'error.body'))
+        setShake(true)
+        setTimeout(() => setShake(false), 450)
         return
       }
       router.push('/admin')
       router.refresh()
     } catch {
-      setError('Bağlantı hatası.')
+      setError(t(lang, 'error.network'))
     } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDemoLogin = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      const res = await fetch('/api/admin/demo-login', { method: 'POST' })
-      const data = (await res.json()) as { error?: string; redirectTo?: string }
-      if (!res.ok) {
-        setError(data.error || 'Demo yönetici girişi açılamadı.')
-        return
-      }
-      router.push(data.redirectTo || '/admin')
-      router.refresh()
-    } catch {
-      setError('Bağlantı hatası.')
-    } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
   return (
     <PublicShell>
-      <div className="mx-auto max-w-md px-4 py-12 sm:px-6">
-        <div className={`enter rounded-3xl border border-line-2 bg-raised/90 p-6 sm:p-8 shadow-[var(--shadow)] ${shake ? 'shake' : ''}`}>
-          <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-band/35 text-clay-ink">
-            <Lock className="size-5" />
-          </div>
-          <h1 className="serif mt-4 text-3xl text-ink">{t(lang, 'admin.loginTitle')}</h1>
-          <p className="mt-1.5 text-sm text-ink-2">{t(lang, 'admin.loginSub')}</p>
-
-          {showDemoLogin && (
-            <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-dashed border-clay/60 bg-band/25 px-4 py-3">
-              <div className="text-xs sm:text-sm text-ink-2">
-                <strong className="font-semibold text-clay-ink">
-                  {lang === 'en' ? 'Temporary Demo:' : 'Geçici Demo Önizleme:'}
-                </strong>{' '}
-                {lang === 'en'
-                  ? 'Skip password and inspect the admin dashboard directly.'
-                  : 'Şifre girmeden doğrudan yönetici panelini aç.'}
-              </div>
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleDemoLogin}
-                className="shrink-0 inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-full bg-clay px-4 text-xs sm:text-sm font-medium text-white hover:opacity-95 disabled:opacity-60"
-              >
-                <span>{lang === 'en' ? 'Open Admin' : 'Panele Geç'}</span>
-                <ArrowRight className="size-3.5" />
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <div role="alert" className="mt-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 text-sm text-danger">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-ink" htmlFor="adminEmail">
-                E-posta
-              </label>
-              <input
-                id="adminEmail"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@fbu.edu.tr"
-                className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 text-base text-ink focus:border-clay focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-ink" htmlFor="adminPass">
-                {t(lang, 'admin.password')}
-              </label>
-              <input
-                id="adminPass"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full min-h-[48px] rounded-xl border border-line bg-surface px-4 text-base text-ink focus:border-clay focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="enter-btn flex w-full min-h-[50px] items-center justify-center rounded-full bg-ink px-6 text-base font-medium text-bg disabled:opacity-60"
-            >
-              {t(lang, 'admin.signIn')}
-            </button>
-          </form>
+      <div className="mx-auto max-w-[440px] px-4 pt-10 sm:px-6 sm:pt-14">
+        <div className="reveal text-center">
+          <Art name="admin" priority className="mx-auto size-32 sm:size-40" />
+          <h1 className="serif mt-5 text-[34px] leading-tight text-ink sm:text-[42px]">{t(lang, 'admin.loginTitle')}</h1>
+          <p className="mx-auto mt-3 max-w-[38ch] text-[15.5px] leading-relaxed text-ink-2">{t(lang, 'admin.loginSub')}</p>
         </div>
+        <form onSubmit={submit} className={`enter mt-9 grid gap-5 ${shake ? 'shake' : ''}`}>
+          {error && <Notice tone="error">{error}</Notice>}
+          <label className="block">
+            <span className="mb-2 block text-[14.5px] font-medium text-ink">{t(lang, 'admin.email')}</span>
+            <input name="email" type="email" className="field" autoComplete="username" inputMode="email" required />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-[14.5px] font-medium text-ink">{t(lang, 'admin.password')}</span>
+            <span className="relative block">
+              <input name="password" type={show ? 'text' : 'password'} className="field !pr-12" autoComplete="current-password" required />
+              <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-1 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full text-ink-3 hover:text-ink"
+                aria-label={t(lang, show ? 'admin.hidePassword' : 'admin.showPassword')}>
+                {show ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </span>
+          </label>
+          <button type="button" role="checkbox" aria-checked={remember} onClick={() => setRemember((r) => !r)} className="choice">
+            <span className="mark rounded-md">{remember && <span className="size-2 rounded-sm bg-white" />}</span>
+            <span className="text-[14.5px] text-ink-2">{t(lang, 'admin.rememberMe')}</span>
+          </button>
+          <button type="submit" disabled={busy} className={`${btn.primary} w-full`}>
+            {t(lang, 'admin.signIn')}
+            <ArrowRight size={17} strokeWidth={1.75} />
+          </button>
+        </form>
       </div>
     </PublicShell>
   )

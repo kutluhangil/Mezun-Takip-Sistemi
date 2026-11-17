@@ -1,0 +1,26 @@
+{
+  "light": [
+    "admin",
+    "empty",
+    "hero",
+    "login",
+    "offline",
+    "ornament",
+    "privacy",
+    "seal",
+    "thanks",
+    "waiting"
+  ],
+  "dark": [
+    "admin",
+    "empty",
+    "hero",
+    "login",
+    "offline",
+    "ornament",
+    "privacy",
+    "seal",
+    "thanks",
+    "waiting"
+  ]
+}

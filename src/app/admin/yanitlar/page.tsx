@@ -1,15 +1,12 @@
-import { requireAdminData } from '@/lib/admin-loader'
+import { requireAdmin } from '@/lib/admin-loader'
+import { getActiveSurvey, getSubmittedResponses } from '@/lib/server-data'
 import { AdminResponsesClient } from '@/components/admin/AdminResponsesClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminResponsesPage() {
-  const data = await requireAdminData()
-  return (
-    <AdminResponsesClient
-      admin={data.admin}
-      survey={data.survey}
-      responses={data.responses}
-    />
-  )
+  const admin = await requireAdmin()
+  const survey = await getActiveSurvey()
+  const responses = await getSubmittedResponses(survey.id)
+  return <AdminResponsesClient admin={admin} survey={survey} responses={responses} />
 }

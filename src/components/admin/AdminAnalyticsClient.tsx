@@ -1,14 +1,12 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { aggregateSurvey, filterResponses, type FilterCriteria } from '@/lib/aggregate'
+import { useMemo, useState } from 'react'
 import { t } from '@/lib/i18n'
 import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import { PageHeader } from '@/components/ui/AppShell'
 import { AdminShell } from '@/components/ui/Shells'
-import { Art } from '@/components/ui/Art'
-import { useUI } from '@/components/ui/UIProvider'
-import { AdminFilterBar } from './AdminFilterBar'
 import { CrossTabPanel } from './CrossTabPanel'
+import { FilterBar, useSurveyFilters } from './kit'
 import { QuestionChartCard } from './QuestionChartCard'
 
 export function AdminAnalyticsClient({
@@ -22,55 +20,41 @@ export function AdminAnalyticsClient({
   responses: SubmittedResponseItem[]
   totalGraduates: number
 }) {
-  const { lang } = useUI()
-  const [filters, setFilters] = useState<FilterCriteria>({
-    period: 'all',
-    graduationYear: 'all',
-    graduationTerm: 'all',
-    workStatus: 'all',
-  })
-
-  const filtered = useMemo(() => filterResponses(responses, filters), [responses, filters])
-  const summary = useMemo(
-    () =>
-      aggregateSurvey({
-        definition: survey.definition,
-        responses: filtered,
-        allResponsesForFacets: responses,
-        totalGraduatesInWhitelist: totalGraduates,
-        lang,
-      }),
-    [survey.definition, filtered, responses, totalGraduates, lang]
+  const { filters, setFilters, filtered, summary, lang } = useSurveyFilters(survey, responses, totalGraduates)
+  const [sectionId, setSectionId] = useState<string>('all')
+  const sections = survey.definition.sections
+  const shown = useMemo(
+    () => summary.questions.filter((a) => !a.question.lockedFromProfile && (sectionId === 'all' || a.question.section === sectionId)),
+    [summary.questions, sectionId]
   )
 
   return (
-    <AdminShell adminName={admin.full_name} adminRole={admin.role}>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="serif text-3xl sm:text-4xl font-normal text-ink">{t(lang, 'ana.title')}</h1>
-            <p className="mt-1 text-sm text-ink-2 tabular">
-              {filtered.length} / {responses.length} {t(lang, 'ana.answered')}
-            </p>
-          </div>
-          <Art name="admin" size={96} className="hidden md:inline-flex" />
-        </div>
+    <AdminShell admin={admin}>
+      <PageHeader kicker={<span className="tabular">{t(lang, 'ana.kicker', { n: filtered.length })}</span>} title={t(lang, 'ana.title')} lede={t(lang, 'ana.lede')} />
+      <div className="mt-8"><FilterBar survey={survey} summary={summary} filters={filters} onChange={setFilters} /></div>
 
-        <AdminFilterBar
-          filters={filters}
-          onChange={setFilters}
-          periods={summary.periods}
-          graduationYears={summary.graduationYears}
-        />
-
-        <CrossTabPanel definition={survey.definition} responses={filtered} />
-
-        <div className="space-y-4">
-          {summary.questions.map((agg) => (
-            <QuestionChartCard key={agg.question.id} agg={agg} />
+      <div className="scroll-thin -mx-4 mt-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="flex w-max gap-2" role="tablist">
+          {[{ id: 'all', label: t(lang, 'dash.filterAll') }, ...sections.map((s) => ({ id: s.id, label: s.title[lang].replace(/^\d+\.\s*/, '') }))].map((s) => (
+            <button key={s.id} type="button" role="tab" aria-selected={sectionId === s.id} onClick={() => setSectionId(s.id)}
+              className={`h-10 whitespace-nowrap rounded-full border px-4 text-[14px] transition-colors ${
+                sectionId === s.id ? 'border-ink bg-ink text-bg' : 'border-line bg-raised/60 text-ink-2 hover:border-ink-3'
+              }`}>
+              {s.label}
+            </button>
           ))}
         </div>
       </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        {shown.map((agg) => (
+          <div key={agg.question.id} className={agg.kind === 'matrix' || agg.kind === 'text' ? 'lg:col-span-2' : ''}>
+            <QuestionChartCard agg={agg} />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-12"><CrossTabPanel definition={survey.definition} responses={filtered} /></div>
     </AdminShell>
   )
 }

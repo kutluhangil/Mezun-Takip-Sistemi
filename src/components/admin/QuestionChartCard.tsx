@@ -13,9 +13,9 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
   if (agg.kind === 'categorical') {
     const maxCount = Math.max(1, ...agg.options.map((o) => o.count), ...agg.otherGroups.map((g) => g.count))
     return (
-      <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
+      <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-base sm:text-lg font-medium text-ink">{agg.question.label[lang]}</h3>
+          <h3 className="serif text-[19px] leading-snug text-ink">{agg.question.label[lang]}</h3>
           <span className="rounded-full border border-line bg-sunk px-2.5 py-0.5 text-xs tabular text-ink-2">
             {agg.answered} {t(lang, 'ana.answered')}
           </span>
@@ -45,7 +45,7 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
 
         {agg.otherGroups.length > 0 && (
           <div className="mt-5 border-t border-line-2 pt-3.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink-3">
+            <p className="text-[13px] text-ink-3">
               {t(lang, 'ana.otherGrouped')}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -68,9 +68,9 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
   if (agg.kind === 'scale') {
     const maxBucket = Math.max(1, ...agg.scale.buckets.map((b) => b.count))
     return (
-      <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
+      <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-base sm:text-lg font-medium text-ink">{agg.question.label[lang]}</h3>
+          <h3 className="serif text-[19px] leading-snug text-ink">{agg.question.label[lang]}</h3>
           <div className="flex flex-wrap items-center gap-2 text-xs tabular">
             <span className="rounded-full bg-band/40 px-2.5 py-0.5 font-semibold text-clay-ink">
               {t(lang, 'ana.mean')}: {agg.scale.mean} / 10
@@ -108,9 +108,9 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
 
   if (agg.kind === 'matrix') {
     return (
-      <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
+      <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="text-base sm:text-lg font-medium text-ink">{agg.question.label[lang]}</h3>
+          <h3 className="serif text-[19px] leading-snug text-ink">{agg.question.label[lang]}</h3>
           <span className="rounded-full border border-line bg-sunk px-2.5 py-0.5 text-xs tabular text-ink-2">
             {agg.answered} {t(lang, 'ana.answered')}
           </span>
@@ -162,22 +162,22 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
 
   if (agg.kind === 'duration') {
     return (
-      <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
-        <h3 className="text-base sm:text-lg font-medium text-ink">{agg.question.label[lang]}</h3>
+      <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
+        <h3 className="serif text-[19px] leading-snug text-ink">{agg.question.label[lang]}</h3>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-line-2 bg-surface p-3">
+          <div className="rounded-xl border border-line-2 bg-sunk/50 p-3">
             <p className="text-xs text-ink-3">{lang === 'en' ? 'Mean (months)' : 'Ortalama (ay)'}</p>
             <p className="mt-1 font-mono text-xl font-semibold tabular text-ink">{agg.duration.meanMonths}</p>
           </div>
-          <div className="rounded-xl border border-line-2 bg-surface p-3">
+          <div className="rounded-xl border border-line-2 bg-sunk/50 p-3">
             <p className="text-xs text-ink-3">{lang === 'en' ? 'Median (months)' : 'Ortanca (ay)'}</p>
             <p className="mt-1 font-mono text-xl font-semibold tabular text-ink">{agg.duration.medianMonths}</p>
           </div>
-          <div className="rounded-xl border border-line-2 bg-surface p-3">
+          <div className="rounded-xl border border-line-2 bg-sunk/50 p-3">
             <p className="text-xs text-ink-3">{lang === 'en' ? 'Working' : 'Çalışan'}</p>
             <p className="mt-1 font-mono text-xl font-semibold tabular text-sage">{agg.duration.workingCount}</p>
           </div>
-          <div className="rounded-xl border border-line-2 bg-surface p-3">
+          <div className="rounded-xl border border-line-2 bg-sunk/50 p-3">
             <p className="text-xs text-ink-3">{lang === 'en' ? 'Not working' : 'Çalışmıyor'}</p>
             <p className="mt-1 font-mono text-xl font-semibold tabular text-ink-2">{agg.duration.notWorkingCount}</p>
           </div>
@@ -187,9 +187,9 @@ export function QuestionChartCard({ agg }: { agg: QuestionAggregation }) {
   }
 
   return (
-    <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
+    <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-base sm:text-lg font-medium text-ink">{agg.question.label[lang]}</h3>
+        <h3 className="serif text-[19px] leading-snug text-ink">{agg.question.label[lang]}</h3>
         <span className="rounded-full border border-line bg-sunk px-2.5 py-0.5 text-xs tabular text-ink-2">
           {agg.text.entries.length} {lang === 'en' ? 'entries' : 'giriş'} · {agg.text.noneCount}{' '}
           {lang === 'en' ? 'None' : 'Yok'}

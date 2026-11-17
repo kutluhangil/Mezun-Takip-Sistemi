@@ -1,9 +1,13 @@
 import { formatAnswerLabel } from '../aggregate'
 import type { Lang, SubmittedResponseItem, SurveyDefinition } from '../survey-types'
 
-function csvEscape(raw: unknown): string {
+/** Excel/Sheets bu karakterlerle başlayan hücreyi formül sayar; başına ' eklenerek düz metne çevrilir. */
+const FORMULA_START = /^[=+\-@\t\r]/
+
+export function csvEscape(raw: unknown): string {
   const s = raw === null || raw === undefined ? '' : String(raw)
-  const clean = s.replace(/\r?\n/g, ' ')
+  let clean = s.replace(/\r?\n/g, ' ')
+  if (typeof raw === 'string' && FORMULA_START.test(clean)) clean = `'${clean}`
   if (clean.includes(',') || clean.includes('"') || clean.includes(';')) {
     return `"${clean.replaceAll('"', '""')}"`
   }
@@ -14,8 +18,10 @@ export function generateCsvExport(params: {
   definition: SurveyDefinition
   responses: SubmittedResponseItem[]
   lang: Lang
+  /** KVKK: kimlik sütunları (ad, e-posta, öğrenci no) çıkarılır */
+  anonymous?: boolean
 }): Buffer {
-  const { definition, responses, lang } = params
+  const { definition, responses, lang, anonymous = false } = params
   const isEn = lang === 'en'
 
   const headers: string[] = [
@@ -23,9 +29,9 @@ export function generateCsvExport(params: {
     isEn ? 'Period' : 'Donem',
     isEn ? 'Submission #' : 'Gonderim Sirasi',
     isEn ? 'Submitted At' : 'Gonderim Tarihi',
-    isEn ? 'Graduate Name' : 'Mezun Ad Soyad',
-    isEn ? 'Email' : 'E-posta',
-    isEn ? 'Student Number' : 'Ogrenci No',
+    ...(anonymous
+      ? []
+      : [isEn ? 'Graduate Name' : 'Mezun Ad Soyad', isEn ? 'Email' : 'E-posta', isEn ? 'Student Number' : 'Ogrenci No']),
     isEn ? 'Graduation Year (Profile)' : 'Mezuniyet Yili (Profil)',
     isEn ? 'Graduation Term (Profile)' : 'Mezuniyet Donemi (Profil)',
   ]
@@ -38,6 +44,7 @@ export function generateCsvExport(params: {
 
   for (const q of definition.questions) {
     if (q.lockedFromProfile) continue
+    if (anonymous && q.id === 'q_student_number') continue
     if (q.type === 'matrix' && q.rows) {
       for (const row of q.rows) {
         headers.push(`${q.id}.${row.id} — ${row[lang]}`)
@@ -58,14 +65,13 @@ export function generateCsvExport(params: {
       csvEscape(resp.period_key),
       csvEscape(resp.submission_number),
       csvEscape(resp.submitted_at),
-      csvEscape(resp.graduate_name),
-      csvEscape(resp.graduate_email),
-      csvEscape(resp.student_number),
+      ...(anonymous ? [] : [csvEscape(resp.graduate_name), csvEscape(resp.graduate_email), csvEscape(resp.student_number)]),
       csvEscape(resp.graduation_year ?? ''),
       csvEscape(resp.graduation_term ?? ''),
     ]
 
     for (const spec of specs) {
+      if (anonymous && spec.qId === 'q_student_number') continue
       const q = questionMap.get(spec.qId)
       if (!q) {
         row.push('')

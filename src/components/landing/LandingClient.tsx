@@ -1,116 +1,94 @@
 'use client'
 
-import React from 'react'
 import Link from 'next/link'
-import { ArrowRight, Lock } from 'lucide-react'
-import { t } from '@/lib/i18n'
+import { ArrowRight, ChevronDown, LockKeyhole } from 'lucide-react'
+import { t, type I18nKey } from '@/lib/i18n'
 import { Art } from '@/components/ui/Art'
-import { BrandLogo } from '@/components/ui/AppShell'
+import { btn, Card, Section } from '@/components/ui/AppShell'
 import { PublicShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 
-export function LandingClient({
-  activePeriod,
-  isOpen,
-  hasSession,
-}: {
-  activePeriod: string
-  isOpen: boolean
-  hasSession: boolean
-}) {
+const STEPS = [1, 2, 3] as const
+const WHY = [1, 2, 3] as const
+const FAQ = [1, 2, 3, 4, 5] as const
+
+export function LandingClient({ activePeriod, isOpen, hasSession }: { activePeriod: string; isOpen: boolean; hasSession: boolean }) {
   const { lang } = useUI()
+  const k = (key: string) => t(lang, key as I18nKey)
 
   return (
-    <PublicShell graduateEmail={hasSession ? 'active' : undefined}>
-      <section className="mx-auto max-w-6xl px-4 pt-8 pb-12 sm:px-6 sm:pt-14 sm:pb-20">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="reveal">
-            <div className="mb-5 flex flex-wrap items-center gap-3">
-              <BrandLogo />
-              <span className="inline-flex items-center gap-2 rounded-full border border-line bg-raised/80 px-3.5 py-1.5 text-xs font-medium text-ink-2">
-                <span className={isOpen ? 'live-dot' : 'size-2 rounded-full bg-ink-3'} />
-                <span className="tabular">
-                  {t(lang, 'survey.periodTag')} {activePeriod}
-                </span>
-              </span>
-            </div>
-
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-clay-ink">
-              {t(lang, 'land.kicker')}
-            </p>
-
-            <h1 className="serif mt-3 text-[clamp(36px,5.6vw,64px)] leading-[1.04] font-normal text-ink">
-              {t(lang, 'land.title')}
-            </h1>
-
-            <p className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-ink-2">
-              {t(lang, 'land.lede')}
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link
-                href={hasSession ? '/anket' : '/giris'}
-                className="enter-btn inline-flex h-13 items-center justify-center gap-2.5 rounded-full bg-ink px-7 text-base font-medium text-bg shadow-sm hover:opacity-95"
-              >
-                <span>{t(lang, 'land.cta')}</span>
-                <ArrowRight className="size-4" />
-              </Link>
-
-              <Link
-                href="/admin/giris"
-                className="inline-flex h-13 items-center justify-center gap-2 rounded-full border border-line bg-raised/75 px-6 text-sm font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
-              >
-                <Lock className="size-4" />
-                <span>{t(lang, 'land.adminLink')}</span>
-              </Link>
-            </div>
-
-            <p className="mt-3 text-xs sm:text-sm text-ink-3">{t(lang, 'land.ctaHint')}</p>
-          </div>
-
-          <div className="enter flex justify-center lg:justify-end">
-            <div className="relative flex flex-col items-center rounded-3xl border border-line-2 bg-raised/65 p-6 sm:p-8 shadow-[var(--shadow)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/fbu-campus.png"
-                alt={t(lang, 'brand.uni')}
-                width={280}
-                height={280}
-                className="h-auto w-[240px] sm:w-[272px] object-contain"
-              />
-              <div className="mt-3 w-full border-t border-line-2 pt-3 text-center">
-                <p className="serif text-sm font-medium text-ink">{t(lang, 'brand.title')}</p>
-                <p className="mt-0.5 text-xs text-ink-3">{t(lang, 'brand.uni')}</p>
-              </div>
-            </div>
-          </div>
+    <PublicShell signedIn={hasSession}>
+      <section className="reveal mx-auto max-w-[780px] px-4 pt-10 text-center sm:px-6 sm:pt-14">
+        <Art name="hero" priority className="art-in mx-auto size-[200px] sm:size-[260px]" />
+        <p className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[13.5px] text-ink-3">
+          <span className="inline-flex items-center gap-2 text-ink-2">
+            {isOpen ? <span className="live-dot" /> : <span className="size-2 rounded-full bg-ink-3" />}
+            {t(lang, isOpen ? 'land.open' : 'land.closed')}
+          </span>
+          <span>{t(lang, 'survey.periodTag')} <span className="tabular text-ink-2">{activePeriod}</span></span>
+        </p>
+        <h1 className="serif mt-4 text-[44px] leading-[1.04] text-ink sm:text-[66px]">{t(lang, 'land.title')}</h1>
+        <p className="mx-auto mt-6 max-w-[56ch] text-[17px] leading-[1.65] text-ink-2 sm:text-[18px]">{t(lang, 'land.lede')}</p>
+        <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <Link href={hasSession ? '/anket' : '/giris'} className={btn.primary}>
+            {t(lang, hasSession ? 'land.continue' : 'land.cta')}
+            <ArrowRight size={17} strokeWidth={1.75} />
+          </Link>
+          <Link href="/admin/giris" className={btn.secondary}>
+            <LockKeyhole size={16} strokeWidth={1.75} />
+            {t(lang, 'land.adminLink')}
+          </Link>
         </div>
+        <p className="mx-auto mt-5 max-w-[46ch] text-[13.5px] leading-relaxed text-ink-3">{t(lang, 'land.ctaHint')}</p>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="ornament">
-          <Art name="ornament" />
-        </div>
-        <h2 className="serif mt-4 text-center text-2xl sm:text-3xl font-normal text-ink">
-          {t(lang, 'land.howTitle')}
-        </h2>
+      <Section title={t(lang, 'land.howTitle')} kicker={t(lang, 'land.howKicker')}>
+        <ol>
+          {STEPS.map((n, i) => (
+            <li key={n} className={i ? 'border-t border-line-2' : ''}>
+              <div className="grid grid-cols-[48px_minmax(0,1fr)] items-baseline gap-4 px-1 py-6 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-6">
+                <span className="serif text-[34px] leading-none text-clay sm:text-[44px]">{n}</span>
+                <span>
+                  <span className="serif block text-[21px] leading-snug text-ink">{k(`land.step${n}Title`)}</span>
+                  <span className="mt-2 block text-[15.5px] leading-relaxed text-ink-2">{k(`land.step${n}Body`)}</span>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Section>
 
-        <div className="reveal mt-8 grid gap-4 md:grid-cols-3">
-          {[
-            { title: t(lang, 'land.step1Title'), body: t(lang, 'land.step1Body') },
-            { title: t(lang, 'land.step2Title'), body: t(lang, 'land.step2Body') },
-            { title: t(lang, 'land.step3Title'), body: t(lang, 'land.step3Body') },
-          ].map((step) => (
-            <div
-              key={step.title}
-              className="rounded-2xl border border-line-2 bg-raised/75 p-6 transition-colors hover:border-line"
-            >
-              <h3 className="serif text-xl font-medium text-ink">{step.title}</h3>
-              <p className="mt-2.5 text-sm sm:text-base leading-relaxed text-ink-2">{step.body}</p>
-            </div>
+      <Section title={t(lang, 'land.whyTitle')} wide>
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {WHY.map((n) => (
+            <Card as="li" key={n} className="p-6">
+              <span className="text-[13px] text-ink-3">{k(`land.why${n}Kicker`)}</span>
+              <span className="serif mt-3 block text-[21px] leading-snug text-ink">{k(`land.why${n}Title`)}</span>
+              <span className="mt-2 block text-[15px] leading-relaxed text-ink-2">{k(`land.why${n}Body`)}</span>
+            </Card>
+          ))}
+        </ul>
+      </Section>
+
+      <Section id="sss" title={t(lang, 'land.faqTitle')}>
+        <div className="divide-y divide-line-2 border-y border-line-2">
+          {FAQ.map((n) => (
+            <details key={n} className="group">
+              <summary className="flex min-h-[60px] items-center justify-between gap-4 py-4 text-left">
+                <span className="serif text-[18.5px] leading-snug text-ink">{k(`faq.q${n}`)}</span>
+                <ChevronDown size={18} strokeWidth={1.75} className="chev shrink-0 text-ink-3 transition-transform" />
+              </summary>
+              <p className="pb-5 pr-8 text-[15.5px] leading-relaxed text-ink-2">{k(`faq.a${n}`)}</p>
+            </details>
           ))}
         </div>
-      </section>
+        <div className="mt-14 text-center">
+          <Link href={hasSession ? '/anket' : '/giris'} className={btn.primary}>
+            {t(lang, hasSession ? 'land.continue' : 'land.cta')}
+            <ArrowRight size={17} strokeWidth={1.75} />
+          </Link>
+        </div>
+      </Section>
     </PublicShell>
   )
 }

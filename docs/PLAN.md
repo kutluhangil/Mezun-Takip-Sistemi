@@ -8,7 +8,7 @@
   - Next.js App Router (standalone) + Tailwind CSS v4 + PostgreSQL 16 + SMTP/Resend.
   - Konteynerler yalnız `127.0.0.1`'e bağlı (`127.0.0.1:3474:3000`); Tailscale önizleme + ileride Cloudflare Tunnel.
 - **Tasarım:** `fildisi-kagit` skill'i (`~/.claude/skills/fildisi-kagit`) + mobil öncelikli başparmak ergonomisi (`>= 44px` hedefler, alt sabit çubuk, kusursuz 375 px responsive deneyim).
-- **Görseller:** Gemini kotası dolu olduğu için `docs/GORSEL.md` hazır; SVG mürekkep+kil yedekleri `.webp` gelene kadar aktif.
+- **Görseller:** `docs/GEMINI-GORSEL-PROMPTLARI.md` ile 10 gravür × açık/koyu üretildi (2026-11-17), `public/art/` altında.
 
 ## 2. Giriş, KVKK ve Veri Politikası
 - **Mezun girişi:** Ad-Soyad + Kişisel E-posta + Öğrenci No (zorunlu) + Mezuniyet yılı ve dönemi → E-postaya 6 haneli doğrulama kodu (OTP) → KVKK onay kutusu → Anket.
@@ -34,7 +34,7 @@
 - **4 Rapor formatı (TR/EN):** Excel (`.xlsx`), CSV (SPSS UTF-8 BOM), Word (`.docx`) ve grafikli PDF (`.pdf`).
 
 ## 5. Fazlar
-- **F0 (Tamam):** `fildisi-kagit` skill'i ve belgeler (`acik-sorular.md`, `GORSEL.md`, `DEPLOY-MACMINI.md`).
+- **F0 (Tamam):** `fildisi-kagit` skill'i ve belgeler (`acik-sorular.md`, `GEMINI-GORSEL-PROMPTLARI.md`, `DEPLOY-MACMINI.md`).
 - **F1:** Next.js + Tailwind v4 kurulumu, `fildisi-kagit` bileşenleri, dil/tema altyapısı, karşılama sayfası.
 - **F2:** PostgreSQL şeması, migrasyonlar, TR/EN 30 soruluk anket JSON'u, seed & OTP/auth/mail katmanı.
 - **F3:** Mobil öncelikli öğrenci girişi (OTP + KVKK slotu) ve çok adımlı otomatik taslaklı anket + teşekkür.

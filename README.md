@@ -28,12 +28,12 @@ Programmes need to know what happens to their graduates. Today that is a paper o
 
 | | |
 |---|---|
-| **Sign-in** | Full name, student number, personal email, graduation year and term, then a 6-digit code by email (valid 10 minutes, 5 wrong tries, throttled per email) and a KVKK consent box. No passwords for graduates. |
-| **The survey** | 30 questions in 5 sections, Turkish and English. Drafts save automatically; a submitted answer is never edited or deleted. Each answer belongs to a period (for example `2026-Guz`), so the same graduate can answer again later and the two can be compared. |
-| **Admin area** | Overview with KPIs, per-question charts, a two-question cross-tab, a response browser, a graduate list (CSV/Excel import, fix an email, reminders) and settings. Roles: `owner` can change things, `viewer` can only read. |
-| **Reports** | Excel (`.xlsx`), CSV with a UTF-8 BOM for SPSS, Word (`.docx`) and a PDF with charts, in both languages. |
-| **Look** | Ivory-paper light theme, clay accent, serif headings, engraved illustrations. Built mobile first with 44 px touch targets. |
-| **Safety** | Signed HTTP-only cookies, `scrypt` password hashes, admin login lockout after 5 failures in 15 minutes, role checks on every write endpoint. |
+| **Sign-in** | Full name, student number, personal email, graduation year and term, then a 6-digit code by email (valid 10 minutes, 5 wrong tries counted atomically, throttled per email and per IP) and a KVKK consent box. No passwords for graduates. When the KVKK notice changes, graduates re-accept it at their next sign-in. |
+| **The survey** | 30 questions in 5 sections, Turkish and English, built for phones: full-width choice rows, a fixed back/next thumb bar, a progress band. Drafts save automatically (also when the tab goes to the background) and resume at the first unfinished section. Answers are validated against the survey definition on the server. A submitted answer is never edited; a database index stops double submissions. Each answer belongs to a period (for example `2026-Guz`). |
+| **Admin area** | Overview with KPIs, per-question charts, a two-question cross-tab, a response browser, a graduate list (Excel template, import with a preview, edit, KVKK anonymisation, batched reminders) and settings (period rules, access list, KVKK text, admins, own password, audit log). Roles: `owner` can change things, `viewer` can only read. Analysis screens never receive names or emails. |
+| **Reports** | Excel (`.xlsx`), CSV with a UTF-8 BOM for SPSS, Word (`.docx`) and a PDF with charts, in both languages. Anonymous export is the default; CSV cells that start with a formula character are escaped. |
+| **Look** | "Fildişi Kâğıt": ivory paper and warm-charcoal dark theme (light / dark / system), one clay accent, serif headings, engraved illustrations with light and dark variants. Mobile first: thumb navigation and 48 px touch targets. |
+| **Safety** | Signed HTTP-only cookies with server-side revocation (logout and password change end every session), `scrypt` hashes, login throttling per email + IP, role checks on every write endpoint, size-limited request bodies, CSP and security headers, verified TLS to the database, an audit log and a daily cleanup cron. |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 
@@ -49,7 +49,7 @@ flowchart LR
   F --> X[xlsx · csv · docx · pdf]
 ```
 
-Next.js 16 (App Router) with React 19, TypeScript and Tailwind CSS v4. Data goes through `pg` (`src/lib/db.ts` runs `db/migrations/001_init.sql` and syncs the survey definition on first use). Mail goes through Resend or SMTP (`src/lib/mail.ts`); without either it logs to the console in development. The survey itself lives in `data/surveys/mezun-bilgi-2026.json`.
+Next.js 16 (App Router) with React 19, TypeScript and Tailwind CSS v4. Data goes through `pg`; versioned migrations in `db/migrations/` are applied once per server instance through `db/core.mjs` (shared with the scripts), and the survey definition is re-synced only when its file changes. Mail goes through Resend or SMTP (`src/lib/mail.ts`); without either it logs to the console in development. The survey itself lives in `data/surveys/mezun-bilgi-2026.json`.
 
 ## Run it locally
 
@@ -57,11 +57,12 @@ Next.js 16 (App Router) with React 19, TypeScript and Tailwind CSS v4. Data goes
 npm install
 cp .env.example .env     # DATABASE_URL, SESSION_SECRET, admin owner, mail settings
 npm run dev              # http://localhost:3000
-npm test                 # Vitest
-npm run lint             # tsc --noEmit
+npm run check            # tsc + eslint + vitest
+npm run db:migrate       # apply migrations (add -- --demo for sample data, never in production)
+npm run art              # turn Gemini drawings in assets-src/illustrations into transparent WebP
 ```
 
-A PostgreSQL 16 database is required. `docker-compose.yml` and the `Dockerfile` run the whole stack on a home server instead; see [`docs/DEPLOY-MACMINI.md`](docs/DEPLOY-MACMINI.md). In development the sign-in page shows a temporary preview button, and the code is returned in the API response when no mail provider is set. Neither exists in production builds.
+A PostgreSQL 16 database is required. `docker-compose.yml` and the `Dockerfile` run the whole stack on a home server instead; see [`docs/DEPLOY-MACMINI.md`](docs/DEPLOY-MACMINI.md). In development, when no mail provider is set, the code is printed to the console and shown on the page. Production never does this.
 
 ## Project notes
 
@@ -71,7 +72,9 @@ A PostgreSQL 16 database is required. `docker-compose.yml` and the `Dockerfile` 
 | [`docs/DEVIR-NOTU.md`](docs/DEVIR-NOTU.md) | Full hand-over: what was built and why |
 | [`docs/KALAN-ISLER-DEVIR.md`](docs/KALAN-ISLER-DEVIR.md) | What is still open |
 | [`docs/acik-sorular.md`](docs/acik-sorular.md) | Questions waiting on the teaching staff |
-| [`docs/GORSEL.md`](docs/GORSEL.md) | Illustration prompts |
+| [`docs/INCELEME-RAPORU-2026-11-17.md`](docs/INCELEME-RAPORU-2026-11-17.md) | Security and performance review |
+| [`docs/PLAN-V2.md`](docs/PLAN-V2.md) | v2 plan: review fixes and redesign |
+| [`docs/GEMINI-GORSEL-PROMPTLARI.md`](docs/GEMINI-GORSEL-PROMPTLARI.md) | Illustration prompts for Gemini |
 
 <img src="docs/media/divider.svg" width="100%" alt="">
 

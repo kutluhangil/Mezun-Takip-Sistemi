@@ -1,62 +1,36 @@
 'use client'
 
-import React from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { Art } from '@/components/ui/Art'
+import { btn } from '@/components/ui/AppShell'
 import { PublicShell } from '@/components/ui/Shells'
 import { useUI } from '@/components/ui/UIProvider'
 
-export function ThanksClient({
-  period,
-  submissionNumber,
-  submittedDate,
-}: {
-  period: string
-  submissionNumber: string
-  submittedDate: string
-}) {
+export function ThanksClient({ period, submissionNumber }: { period: string; submissionNumber: string }) {
   const { lang } = useUI()
-
+  const date = new Date().toLocaleDateString(lang === 'en' ? 'en-GB' : 'tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const rows = [
+    [t(lang, 'thanks.periodLabel'), period],
+    [t(lang, 'thanks.dateLabel'), date],
+    [t(lang, 'thanks.submissionNo'), `#${submissionNumber}`],
+  ]
   return (
-    <PublicShell>
-      <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
-        <div className="enter rounded-3xl border border-line-2 bg-raised/90 p-6 sm:p-10 text-center shadow-[var(--shadow)]">
-          <div className="flex justify-center">
-            <Art name="thanks" size={200} />
-          </div>
-
-          <h1 className="serif mt-2 text-3xl sm:text-4xl font-normal text-ink">
-            {t(lang, 'thanks.title')}
-          </h1>
-          <p className="mt-3 text-base leading-relaxed text-ink-2">{t(lang, 'thanks.subtitle')}</p>
-
-          <div className="mt-7 grid grid-cols-3 gap-2 rounded-2xl border border-line-2 bg-surface p-4 text-left">
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-ink-3">{t(lang, 'thanks.periodLabel')}</p>
-              <p className="mt-0.5 text-sm font-semibold tabular text-ink">{period}</p>
+    <PublicShell signedIn>
+      <div className="reveal mx-auto max-w-[620px] px-4 pt-10 text-center sm:px-6 sm:pt-16">
+        <Art name="thanks" priority className="art-in mx-auto size-44 sm:size-52" />
+        <h1 className="serif mt-6 text-[38px] leading-tight text-ink sm:text-[52px]">{t(lang, 'thanks.title')}</h1>
+        <p className="mx-auto mt-4 max-w-[48ch] text-[16.5px] leading-relaxed text-ink-2">{t(lang, 'thanks.subtitle')}</p>
+        <dl className="mx-auto mt-10 max-w-[420px] divide-y divide-line-2 border-y border-line-2 text-left">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between gap-4 py-3.5">
+              <dt className="text-[14px] text-ink-3">{k}</dt>
+              <dd className="tabular text-[15px] text-ink">{v}</dd>
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-ink-3">{t(lang, 'thanks.submissionNo')}</p>
-              <p className="mt-0.5 text-sm font-semibold tabular text-ink">#{submissionNumber}</p>
-            </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-ink-3">{t(lang, 'thanks.dateLabel')}</p>
-              <p className="mt-0.5 text-sm font-semibold tabular text-ink">{submittedDate}</p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-center">
-            <Link
-              href="/"
-              className="enter-btn inline-flex h-12 items-center gap-2 rounded-full bg-ink px-7 text-sm font-medium text-bg"
-            >
-              <ArrowLeft className="size-4" />
-              <span>{t(lang, 'thanks.backHome')}</span>
-            </Link>
-          </div>
-        </div>
+          ))}
+        </dl>
+        <p className="mx-auto mt-6 max-w-[46ch] text-[13.5px] leading-relaxed text-ink-3">{t(lang, 'thanks.note')}</p>
+        <Link href="/" className={`${btn.secondary} mt-8`}>{t(lang, 'thanks.backHome')}</Link>
       </div>
     </PublicShell>
   )

@@ -1,82 +1,35 @@
-# Kalan İşler ve Claude Code Devir Listesi (2026-11-15)
+# Kalan İşler ve Devir Listesi (2026-11-17)
 
-> **Bağlam:** Projenin tam mimarisi ve bugüne kadar yapılanlar için önce [DEVIR-NOTU.md](DEVIR-NOTU.md) dosyasına bak. Bu dosya yalnızca **eksik, yarım kalan veya canlıya tam açmadan önce yapılması gereken** işleri içerir.
+> Mimari ve geçmiş için [DEVIR-NOTU.md](DEVIR-NOTU.md). Bu turda yapılanların listesi [PLAN-V2.md](PLAN-V2.md), gerekçeler [INCELEME-RAPORU-2026-11-17.md](INCELEME-RAPORU-2026-11-17.md).
+> **Durum:** v2 yerelde bitti ve doğrulandı (`npm run check` temiz, `next build` temiz, uçtan uca API testi 36/36). **Commit ve deploy yapılmadı.**
 
-## 0. Akşam turunda tamamlananlar (commit edilmedi, deploy edilmedi)
+## 1. Canlıya almadan önce (Kutluhan)
 
-- **Admin giriş kilidi:** `src/lib/login-throttle.ts` + `login_attempts` tablosu (`001_init.sql`). Aynı e-posta için 15 dakikada 5, aynı IP için 20 başarısız denemede `429`. Yerelde doğrulandı (6. deneme `429`).
-- **OTP saatlik sınır:** `request-otp` aynı e-posta için saatte en fazla 8 kod (spam ve e-posta kotası koruması).
-- **Üretimde varsayılan admin yok:** `src/lib/db.ts` artık production'da `ADMIN_OWNER_EMAIL` ve `ADMIN_OWNER_PASSWORD` tanımlı değilse yönetici oluşturmaz.
-- **`src/app/error.tsx`** eklendi (TR/EN, `offline` illüstrasyonu, "Tekrar dene").
-- **README** gerçek duruma göre yeniden yazıldı; `docs/media/logo3.png` kopyası silindi.
-- **Temizlik:** Neon'daki test mezunu ve OTP kayıtları silindi (`graduates`, `responses`, `otp_codes`, `login_attempts` boş; `admins` = 1).
-- **Uçtan uca doğrulama (yerel, Neon):** OTP isteği, yanlış kod `400`, doğru kod ile giriş, `/anket` ve taslak `200`, oturumsuz `/api/admin/dashboard` ve `/export` `401`.
+1. **Commit + push** ("commit at" demen yeterli). Vercel otomatik deploy eder.
+2. **Vercel ortam değişkenleri** (production + preview):
+   - `CRON_SECRET`: yeni, rastgele bir değer. Günlük temizlik işi (`/api/cron/cleanup`, `vercel.json`) bununla korunur. Üret: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - `SESSION_SECRET`: en az 32 karakter olduğundan emin ol (kod 16'nın altını reddeder).
+3. **İlk açılışta ne olur:**
+   - `002_hardening.sql` migration'ı ilk istekte kendiliğinden uygulanır (yeni sütunlar, denetim tablosu, çift gönderim index'i, IP maskeleme).
+   - Oturum çerezinin biçimi değişti: **açık tüm oturumlar bir kez kapanır**, herkes yeniden giriş yapar. Bu beklenen davranış.
+   - İstersen önce yerelden de uygulayabilirsin: `vercel env pull .env.local` sonra `set -a; . ./.env.local; set +a; npm run db:migrate`
+4. **Canlıda kontrol:** `/api/health` → `{"ok":true}`, ana sayfa açık ve koyu tema, `/giris` ile gerçek OTP e-postası, `/admin/ayarlar` → şifre değiştir, `/admin/rapor` → 4 dosya.
+5. **Deneme verisi temizliği** (Neon): `graduates` tablosunda `email LIKE '%@example.com'` veya `full_name LIKE 'Demo%'` satırları. Silmeden önce kontrol et; anonimleştirme panelden de yapılabilir.
 
-> [!WARNING]
-> **Neon'daki varsayılan yönetici hâlâ duruyor:** `admin@fbu.edu.tr` / `ChangeMe123!`. Canlı adres şu an Vercel Deployment Protection arkasında, ama korumayı kapatmadan önce bu hesap gerçek bilgilerle değiştirilmeli (aşağıdaki bölüm 1).
+## 2. Gemini görselleri — tamam
 
----
+- 10 görsel × açık/koyu `public/art/` altında (`npm run art`). Yenisi gerekirse aynı adla `assets-src/illustrations/` içine koyup komutu tekrar çalıştırmak yeterli.
 
-## 1. Acil Güvenlik ve Yönetici Ayarları (Canlı URL İçin Zorunlu)
+## 3. Öğretmenlerden beklenen (değişmedi)
 
-- **Neon `admins` tablosundaki varsayılan yöneticiyi güncelle:**
-  - Yerel test sırasında `ensureDbReady()` ilk açılışta `.env` varsayılanı ile `admin@fbu.edu.tr` hesabını oluşturdu.
-  - **Yapılacak:** Kutluhan'dan gerçek yönetici (`owner`) e-posta + güçlü şifre (ve varsa `viewer` öğretmen e-postaları) alınıp:
-    1. Vercel ortam değişkenlerine (`ADMIN_OWNER_EMAIL`, `ADMIN_OWNER_NAME`, `ADMIN_OWNER_PASSWORD`) eklenmeli (`production` ve `preview`).
-    2. Neon'daki `admins` tablosunda eski varsayılan kayıt güncellenmeli / silinmeli (`scrypt` hash `src/lib/auth.ts` içindeki `hashPassword` ile üretilir).
-- **`APP_BASE_URL` ortam değişkenini eşitle:**
-  - Canlı `.vercel.app` adresi kesinleşince Vercel env üzerinde `APP_BASE_URL` olarak ayarlanmalı (`src/lib/auth.ts` içindeki `secure` cookie bayrağı ve hatırlatma linkleri buna bakar).
+- **Mezun listesi (~600):** `/admin/mezunlar` → "Excel şablonu" ile doldurulup "Liste yükle" (önce önizleme gösterir). Sonra `/admin/ayarlar` → "Yalnız mezun listesindekiler girebilsin" açılmalı. Liste gelene kadar panelde uyarı bandı duruyor.
+- **Resmi KVKK metni:** Şu an `data/kvkk-aydinlatma-taslak.json` taslağı gösteriliyor. Resmi metin gelince `/admin/ayarlar` → KVKK, **sürüm etiketini de değiştir**; mezunlar bir sonraki girişte yeniden onaylar.
+- **Tekrar kuralı, gelir dilimleri, matris 11. madde:** [acik-sorular.md](acik-sorular.md).
 
----
+## 4. İsteğe bağlı sonraki adımlar
 
-## 2. E-posta Gönderimi (OTP + Hatırlatma)
-
-- **Durum:** Vercel Marketplace `resend` entegrasyonu özel alan adı (`domain`) doğrulaması zorunlu tutuyor. Kutluhan şu an alan adı almayacak.
-- **Yapılacak (Alan Adısız Çözüm):** `src/lib/mail.ts` zaten Nodemailer SMTP destekliyor.
-  - Kutluhan bir **Gmail + Uygulama Şifresi (App Password)** oluşturunca Vercel `production` / `preview` ortam değişkenlerine eklenecek:
-    - `MAIL_FROM`
-    - `SMTP_HOST=smtp.gmail.com`
-    - `SMTP_PORT=465`
-    - `SMTP_SECURE=true`
-    - `SMTP_USER`
-    - `SMTP_PASS`
-  - Ardından canlı ortamda `/giris` üzerinden gerçek 6 haneli OTP e-postası gönderimi ve `/admin/mezunlar` hatırlatma e-postası test edilecek.
-
----
-
-## 3. Geçici Kodların Kaldırılması (Önizleme Bitince)
-
-Aşağıdaki geçici önizleme parçaları `NODE_ENV === 'production'` altında zaten kapalı (404 döner ve gizlenir), ancak kullanıcı incelemeyi bitirdiğinde kod temizliği için tamamen silinmeli:
-
-- `src/app/api/auth/demo-login/route.ts`
-- `src/app/giris/page.tsx` ve `src/components/auth/GraduateLoginClient.tsx` içindeki `showDemoLogin` / `handleDemoLogin`
-- `src/app/api/admin/demo-login/route.ts`
-- `src/app/admin/giris/page.tsx` ve `src/components/admin/AdminLoginClient.tsx` içindeki `showDemoLogin` / `handleDemoLogin`
-
----
-
-## 4. Canlı Vercel Serverless Doğrulaması
-
-- **Test edilmesi gerekenler (canlı `.vercel.app` üzerinde):**
-  1. `GET /api/health` → `{"ok":true,"db":"connected"}`
-  2. `GET /`, `GET /giris`, `GET /admin/giris`, `GET /olmayan-sayfa` (404 ve görseller)
-  3. Giriş sonrası `/anket` taslak kaydı + anket gönderimi + `/tesekkurler` (`thanks.webp`)
-  4. `/admin/rapor` üzerinden **4 dışa aktarımın** (`.xlsx`, `.csv`, `.docx`, `.pdf`) Vercel Serverless üzerinde sorunsuz indiğini doğrulamak — özellikle `pdfkit` + `dejavu-fonts-ttf` ve `public/brand/fbu-logo.png` dosya yollarının (`next.config.ts` → `outputFileTracingIncludes`) production bundle içinde çalıştığını kontrol etmek.
-  5. İstenirse `--demo` örnek verisiyle (`/admin`, `/admin/analiz`) grafik/çapraz tablo önizlemesi yapıp **canlı açılış öncesi örnek kayıtları DB'den temizlemek**.
-
----
-
-## 5. Öğretmenlerden Beklenen İçerik ve Kararlar (`docs/acik-sorular.md`)
-
-- **Mezun listesi:** ~600 kişilik Excel/CSV geldiğinde `/admin/mezunlar` üzerinden içeri aktarılacak; whitelist zorunluluğu ayarı admin panelinden açılacak.
-- **Resmi KVKK metni:** Şu an `src/lib/server-data.ts` içinde `v0-placeholder` ve boş metin var; resmi FBÜ metni gelince admin ayarlarından girilecek (TR + EN).
-- **6 ayda bir tekrar kuralı:** Sabit takvim dönemi (`2026-Güz` / `2027-Bahar`) mi yoksa kişiye özel 180 gün mü? Admin ayarlarından netleştirilecek.
-- **Aylık gelir dilimleri & Matris 11. madde:** Asgari ücret katı vs sabit TL dilimleri ve "DGS / lisansüstü" ifadesi öğretmen onayıyla kesinleşecek (`data/surveys/mezun-bilgi-2026.json`).
-
----
-
-## 6. Küçük Temizlik ve Dokümantasyon
-
-- ~~`docs/media/logo3.png` kopya~~ silindi, ~~README~~ güncellendi, ~~`error.tsx`~~ eklendi (bölüm 0).
-- Hero (`docs/media/hero.svg`) hâlâ "concept" afişi (örnek sorular ve sayılar). İstenirse `readme-tema` skill'iyle gerçek ürün ekranına göre yeniden üretilebilir.
-- Demo butonları kullanılırsa Neon'a "Demo Mezun" satırı eklenir; canlı açılıştan önce `graduates` tablosunda `full_name LIKE 'Demo Mezun%'` satırlarını sil.
+- Otomatik dönem hatırlatması (Vercel Cron ile dönem başında `reminders` partileri).
+- Dönem karşılaştırma grafiği (2026-Güz vs 2027-Bahar istihdam oranı).
+- Hata izleme (Vercel Observability veya Sentry).
+- Haftalık veritabanı yedeği (Neon dalı veya `pg_dump` GitHub Action).
+- `README` başındaki `docs/media/hero.svg` hâlâ eski konsept afişi; istenirse `readme-tema` ile yeni tasarıma göre yenilenir.

@@ -35,8 +35,8 @@ export function CrossTabPanel({
   }, [eligibleQuestions, rowId, colId, responses, lang])
 
   return (
-    <div className="rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6">
-      <h2 className="serif text-2xl font-normal text-ink">{t(lang, 'ana.crossTitle')}</h2>
+    <div className="rounded-2xl border border-line-2 bg-raised/60 p-5 backdrop-blur-sm sm:p-6">
+      <h2 className="serif text-[24px] text-ink">{t(lang, 'ana.crossTitle')}</h2>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
@@ -44,7 +44,7 @@ export function CrossTabPanel({
           <select
             value={rowId}
             onChange={(e) => setRowId(e.target.value)}
-            className="mt-1 w-full min-h-[44px] rounded-xl border border-line bg-surface px-3 text-sm text-ink focus:border-clay focus:outline-none"
+            className="field mt-1.5"
           >
             {eligibleQuestions.map((q) => (
               <option key={q.id} value={q.id}>
@@ -59,7 +59,7 @@ export function CrossTabPanel({
           <select
             value={colId}
             onChange={(e) => setColId(e.target.value)}
-            className="mt-1 w-full min-h-[44px] rounded-xl border border-line bg-surface px-3 text-sm text-ink focus:border-clay focus:outline-none"
+            className="field mt-1.5"
           >
             {eligibleQuestions.map((q) => (
               <option key={q.id} value={q.id}>

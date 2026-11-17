@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import nodemailer, { type Transporter } from 'nodemailer'
 import type { Lang } from './survey-types'
 
 export interface SendMailInput {
@@ -14,6 +14,25 @@ export interface SendMailResult {
   error?: string
 }
 
+declare global {
+  var __mtsMailer: Transporter | undefined
+}
+
+/** SMTP bağlantısı süreç başına bir kez açılır; toplu hatırlatmada her mail için yeniden el sıkışılmaz. */
+function smtpTransport(host: string): Transporter {
+  if (!global.__mtsMailer) {
+    global.__mtsMailer = nodemailer.createTransport({
+      host,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: process.env.SMTP_SECURE === 'true',
+      pool: true,
+      maxConnections: 2,
+      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' } : undefined,
+    })
+  }
+  return global.__mtsMailer
+}
+
 export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   const from = process.env.MAIL_FROM || 'FBÜ İlk ve Acil Yardım <noreply@localhost>'
   const resendKey = process.env.RESEND_API_KEY?.trim()
@@ -22,51 +41,23 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from,
-          to: [input.to],
-          subject: input.subject,
-          text: input.text,
-          html: input.html,
-        }),
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [input.to], subject: input.subject, text: input.text, html: input.html }),
       })
-      if (!res.ok) {
-        const body = await res.text()
-        return { delivered: false, provider: 'resend', error: `Resend ${res.status}: ${body}` }
-      }
+      if (!res.ok) return { delivered: false, provider: 'resend', error: `Resend ${res.status}` }
       return { delivered: true, provider: 'resend' }
     } catch (err) {
-      return { delivered: false, provider: 'resend', error: (err as Error).message }
+      return { delivered: false, provider: 'resend', error: (err as Error).message.slice(0, 200) }
     }
   }
 
   const smtpHost = process.env.SMTP_HOST?.trim()
   if (smtpHost) {
     try {
-      const port = Number(process.env.SMTP_PORT || 587)
-      const secure = process.env.SMTP_SECURE === 'true'
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port,
-        secure,
-        auth: process.env.SMTP_USER
-          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' }
-          : undefined,
-      })
-      await transporter.sendMail({
-        from,
-        to: input.to,
-        subject: input.subject,
-        text: input.text,
-        html: input.html,
-      })
+      await smtpTransport(smtpHost).sendMail({ from, to: input.to, subject: input.subject, text: input.text, html: input.html })
       return { delivered: true, provider: 'smtp' }
     } catch (err) {
-      return { delivered: false, provider: 'smtp', error: (err as Error).message }
+      return { delivered: false, provider: 'smtp', error: (err as Error).message.slice(0, 200) }
     }
   }
 

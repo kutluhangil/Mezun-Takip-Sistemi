@@ -1,13 +1,19 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { FileSpreadsheet, FileText, TableProperties, FileCode } from 'lucide-react'
-import { aggregateSurvey, filterResponses, type FilterCriteria } from '@/lib/aggregate'
+import { useState } from 'react'
+import { Download, FileSpreadsheet, FileText, FileType2, Table2 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import type { AdminUser, SubmittedResponseItem, SurveyRow } from '@/lib/survey-types'
+import { btn, Card, PageHeader } from '@/components/ui/AppShell'
 import { AdminShell } from '@/components/ui/Shells'
-import { useUI } from '@/components/ui/UIProvider'
-import { AdminFilterBar } from './AdminFilterBar'
+import { FilterBar, useSurveyFilters } from './kit'
+
+const FORMATS = [
+  { id: 'xlsx', icon: FileSpreadsheet, title: 'rep.excelTitle', desc: 'rep.excelDesc', identity: true },
+  { id: 'csv', icon: Table2, title: 'rep.csvTitle', desc: 'rep.csvDesc', identity: true },
+  { id: 'docx', icon: FileText, title: 'rep.docxTitle', desc: 'rep.docxDesc', identity: false },
+  { id: 'pdf', icon: FileType2, title: 'rep.pdfTitle', desc: 'rep.pdfDesc', identity: false },
+] as const
 
 export function AdminReportsClient({
   admin,
@@ -20,113 +26,55 @@ export function AdminReportsClient({
   responses: SubmittedResponseItem[]
   totalGraduates: number
 }) {
-  const { lang } = useUI()
-  const [filters, setFilters] = useState<FilterCriteria>({
-    period: 'all',
-    graduationYear: 'all',
-    graduationTerm: 'all',
-    workStatus: 'all',
-  })
+  const { filters, setFilters, filtered, summary, lang } = useSurveyFilters(survey, responses, totalGraduates)
+  const [anonymous, setAnonymous] = useState(true)
 
-  const filtered = useMemo(() => filterResponses(responses, filters), [responses, filters])
-  const summary = useMemo(
-    () =>
-      aggregateSurvey({
-        definition: survey.definition,
-        responses: filtered,
-        allResponsesForFacets: responses,
-        totalGraduatesInWhitelist: totalGraduates,
-        lang,
-      }),
-    [survey.definition, filtered, responses, totalGraduates, lang]
-  )
-
-  const buildDownloadUrl = (format: 'xlsx' | 'csv' | 'docx' | 'pdf') => {
-    const sp = new URLSearchParams({
+  const href = (format: string) => {
+    const p = new URLSearchParams({
       format,
       lang,
-      period: filters.period || 'all',
-      year: filters.graduationYear || 'all',
-      term: filters.graduationTerm || 'all',
-      workStatus: filters.workStatus || 'all',
+      period: filters.period ?? 'all',
+      year: filters.graduationYear ?? 'all',
+      term: filters.graduationTerm ?? 'all',
+      workStatus: filters.workStatus ?? 'all',
+      anonymous: anonymous ? '1' : '0',
     })
-    return `/api/admin/export?${sp.toString()}`
+    return `/api/admin/export?${p.toString()}`
   }
 
-  const cards = [
-    {
-      fmt: 'xlsx' as const,
-      title: t(lang, 'rep.excelTitle'),
-      desc: t(lang, 'rep.excelDesc'),
-      icon: <FileSpreadsheet className="size-6 text-sage" />,
-    },
-    {
-      fmt: 'csv' as const,
-      title: t(lang, 'rep.csvTitle'),
-      desc: t(lang, 'rep.csvDesc'),
-      icon: <TableProperties className="size-6 text-ink-2" />,
-    },
-    {
-      fmt: 'docx' as const,
-      title: t(lang, 'rep.docxTitle'),
-      desc: t(lang, 'rep.docxDesc'),
-      icon: <FileText className="size-6 text-clay" />,
-    },
-    {
-      fmt: 'pdf' as const,
-      title: t(lang, 'rep.pdfTitle'),
-      desc: t(lang, 'rep.pdfDesc'),
-      icon: <FileCode className="size-6 text-clay-ink" />,
-    },
-  ]
-
   return (
-    <AdminShell adminName={admin.full_name} adminRole={admin.role}>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 space-y-6">
-        <div>
-          <h1 className="serif text-3xl sm:text-4xl font-normal text-ink">{t(lang, 'rep.title')}</h1>
-          <p className="mt-1 text-sm text-ink-2">{t(lang, 'rep.subtitle')}</p>
-        </div>
+    <AdminShell admin={admin}>
+      <PageHeader kicker={<span className="tabular">{t(lang, 'ana.kicker', { n: filtered.length })}</span>} title={t(lang, 'rep.title')} lede={t(lang, 'rep.subtitle')} />
+      <div className="mt-8"><FilterBar survey={survey} summary={summary} filters={filters} onChange={setFilters} /></div>
 
-        <AdminFilterBar
-          filters={filters}
-          onChange={setFilters}
-          periods={summary.periods}
-          graduationYears={summary.graduationYears}
-        />
+      <button type="button" role="switch" aria-checked={anonymous} onClick={() => setAnonymous((v) => !v)} className="choice mt-4 items-start sm:max-w-xl">
+        <span className="mark mt-0.5 rounded-md">{anonymous && <span className="size-2 rounded-sm bg-white" />}</span>
+        <span>
+          <span className="block text-[15px] text-ink">{t(lang, 'rep.anonymous')}</span>
+          <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-3">{t(lang, 'rep.anonymousHint')}</span>
+        </span>
+      </button>
 
-        <div className="rounded-2xl border border-line-2 bg-surface px-4 py-3 text-xs sm:text-sm text-ink-2 tabular">
-          {lang === 'en' ? 'Selected dataset:' : 'Dışa aktarılacak kayıt:'}{' '}
-          <strong className="text-ink">{filtered.length}</strong> {t(lang, 'ana.answered')} ·{' '}
-          <strong className="text-clay-ink">{lang.toUpperCase()}</strong>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {cards.map((c) => (
-            <div
-              key={c.fmt}
-              className="flex flex-col justify-between rounded-2xl border border-line-2 bg-raised/90 p-5 sm:p-6"
-            >
-              <div>
-                <div className="inline-flex size-11 items-center justify-center rounded-xl border border-line-2 bg-surface">
-                  {c.icon}
-                </div>
-                <h2 className="serif mt-4 text-2xl font-normal text-ink">{c.title}</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{c.desc}</p>
-              </div>
-
-              <div className="mt-6">
-                <a
-                  href={buildDownloadUrl(c.fmt)}
-                  className="enter-btn inline-flex min-h-[44px] items-center justify-center rounded-full bg-ink px-6 text-sm font-medium text-bg hover:opacity-95"
-                >
-                  {t(lang, 'rep.download')} ({c.fmt.toUpperCase()})
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+        {FORMATS.map((f) => {
+          const Icon = f.icon
+          return (
+            <Card as="li" key={f.id} className="flex flex-col p-6">
+              <span className="flex items-center justify-between gap-3">
+                <Icon size={22} strokeWidth={1.5} className="text-clay" />
+                <span className="font-mono text-[12px] uppercase text-ink-3">.{f.id}</span>
+              </span>
+              <span className="serif mt-4 block text-[21px] leading-snug text-ink">{t(lang, f.title)}</span>
+              <span className="mt-2 block flex-1 text-[14.5px] leading-relaxed text-ink-2">{t(lang, f.desc)}</span>
+              {!f.identity && <span className="mt-3 block text-[12.5px] text-ink-3">{t(lang, 'rep.summaryOnly')}</span>}
+              <a href={href(f.id)} download className={`${btn.small} mt-5 self-start`}>
+                <Download size={15} strokeWidth={1.75} />
+                {t(lang, 'rep.download')}
+              </a>
+            </Card>
+          )
+        })}
+      </ul>
     </AdminShell>
   )
 }

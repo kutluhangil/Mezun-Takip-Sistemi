@@ -37,8 +37,10 @@ export async function generateExcelExport(params: {
   graduates: GraduateListItem[]
   filterLabel: string
   lang: Lang
+  /** KVKK: kimlik sütunları ve mezun listesi sayfası çıkarılır */
+  anonymous?: boolean
 }): Promise<Buffer> {
-  const { definition, summary, responses, graduates, filterLabel, lang } = params
+  const { definition, summary, responses, graduates, filterLabel, lang, anonymous = false } = params
   const isEn = lang === 'en'
 
   const workbook = new ExcelJS.Workbook()
@@ -151,13 +153,15 @@ export async function generateExcelExport(params: {
 
   // 3. TEKİL YANITLAR
   const wsResp = workbook.addWorksheet(isEn ? 'Individual Responses' : 'Tekil Yanitlar')
-  const nonLockedQuestions = definition.questions.filter((q) => !q.lockedFromProfile)
+  const nonLockedQuestions = definition.questions.filter(
+    (q) => !q.lockedFromProfile && !(anonymous && q.id === 'q_student_number')
+  )
   const respHeaders: string[] = [
     isEn ? 'Period' : 'Dönem',
     isEn ? 'Submitted At' : 'Tarih',
-    isEn ? 'Graduate Name' : 'Ad Soyad',
-    isEn ? 'Email' : 'E-posta',
-    isEn ? 'Student No' : 'Öğrenci No',
+    ...(anonymous
+      ? []
+      : [isEn ? 'Graduate Name' : 'Ad Soyad', isEn ? 'Email' : 'E-posta', isEn ? 'Student No' : 'Öğrenci No']),
     isEn ? 'Grad Year' : 'Mezuniyet Yılı',
   ]
   for (const q of nonLockedQuestions) {
@@ -175,9 +179,7 @@ export async function generateExcelExport(params: {
     const line: (string | number)[] = [
       r.period_key,
       new Date(r.submitted_at).toLocaleString(isEn ? 'en-US' : 'tr-TR'),
-      r.graduate_name,
-      r.graduate_email,
-      r.student_number,
+      ...(anonymous ? [] : [r.graduate_name, r.graduate_email, r.student_number]),
       r.graduation_year ?? '',
     ]
     for (const q of nonLockedQuestions) {
@@ -195,7 +197,8 @@ export async function generateExcelExport(params: {
     wsResp.addRow(line)
   }
 
-  // 4. KATILIM / BEKLEYEN LİSTESİ
+  // 4. KATILIM / BEKLEYEN LİSTESİ (anonim dışa aktarmada kimlik içerdiği için yok)
+  if (anonymous) return Buffer.from(await workbook.xlsx.writeBuffer())
   const wsGrad = workbook.addWorksheet(isEn ? 'Graduates Status' : 'Mezun Katilim Listesi')
   wsGrad.columns = [
     { width: 16 },

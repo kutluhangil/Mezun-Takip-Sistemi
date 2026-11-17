@@ -1,103 +1,38 @@
-import { Pool, type QueryResult, type QueryResultRow } from 'pg'
-import fs from 'fs'
-import path from 'path'
-import crypto from 'crypto'
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg'
+import { ensureSeed, runMigrations, sslConfig } from '../../db/core.mjs'
 import surveyJson from '../../data/surveys/mezun-bilgi-2026.json'
 
 declare global {
-  // eslint-disable-next-line no-var
   var __mtsPool: Pool | undefined
-  // eslint-disable-next-line no-var
   var __mtsInitPromise: Promise<void> | undefined
-}
-
-function shouldUseSsl(connectionString: string): boolean {
-  if (process.env.DATABASE_SSL === 'false') return false
-  if (process.env.DATABASE_SSL === 'true') return true
-  try {
-    const parsed = new URL(connectionString)
-    const host = parsed.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1' || host === 'postgres') {
-      return parsed.searchParams.get('sslmode') === 'require'
-    }
-    return true
-  } catch {
-    return connectionString.includes('sslmode=require')
-  }
 }
 
 function getPool(): Pool {
   if (!global.__mtsPool) {
-    const connectionString =
-      process.env.DATABASE_URL || 'postgresql://mezun:mezun_dev_pass@localhost:5432/mezun_takip'
-    const useSsl = shouldUseSsl(connectionString)
+    const connectionString = process.env.DATABASE_URL
+    if (!connectionString) throw new Error('DATABASE_URL tanımlı değil.')
     global.__mtsPool = new Pool({
       connectionString,
       max: process.env.VERCEL ? 5 : 15,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 8000,
-      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      ssl: sslConfig(connectionString),
     })
   }
   return global.__mtsPool
 }
 
-export function hashPasswordSync(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex')
-  const derived = crypto.scryptSync(password, salt, 64).toString('hex')
-  return `scrypt$${salt}$${derived}`
-}
-
-async function runBootstrap(): Promise<void> {
+/** Sunucu örneği başına bir kez: bekleyen migration'lar + anket/yönetici tohumu. Kararlı durumda 2 hafif sorgu. */
+async function bootstrap(): Promise<void> {
   const pool = getPool()
-  const migrationPath = path.join(process.cwd(), 'db', 'migrations', '001_init.sql')
-  if (fs.existsSync(migrationPath)) {
-    const sql = fs.readFileSync(migrationPath, 'utf8')
-    await pool.query(sql)
-  }
-
-  // Varsayılan anket yoksa veya tanımı güncel değilse ekle/güncelle
-  await pool.query(
-    `INSERT INTO surveys (slug, title_tr, title_en, definition)
-     VALUES ($1, $2, $3, $4::jsonb)
-     ON CONFLICT (slug) DO UPDATE SET
-       title_tr = EXCLUDED.title_tr,
-       title_en = EXCLUDED.title_en,
-       definition = EXCLUDED.definition,
-       updated_at = NOW()`,
-    [
-      surveyJson.slug,
-      surveyJson.title.tr,
-      surveyJson.title.en,
-      JSON.stringify(surveyJson),
-    ]
-  )
-
-  // Hiç yönetici yoksa env değerleriyle ilk program başkanı (owner) hesabını aç
-  const adminCount = await pool.query<{ c: string }>('SELECT COUNT(*)::text AS c FROM admins')
-  if (Number(adminCount.rows[0]?.c ?? 0) === 0) {
-    const isProd = process.env.NODE_ENV === 'production'
-    const envEmail = process.env.ADMIN_OWNER_EMAIL?.trim()
-    const envPassword = process.env.ADMIN_OWNER_PASSWORD
-    if (isProd && (!envEmail || !envPassword)) {
-      console.error('[db] ADMIN_OWNER_EMAIL / ADMIN_OWNER_PASSWORD tanımlı değil; üretimde varsayılan yönetici oluşturulmadı.')
-    } else {
-      const email = (envEmail || 'admin@fbu.edu.tr').toLowerCase()
-      const fullName = (process.env.ADMIN_OWNER_NAME || 'Program Başkanı').trim()
-      const hash = hashPasswordSync(envPassword || 'ChangeMe123!')
-      await pool.query(
-        `INSERT INTO admins (email, full_name, role, password_hash)
-         VALUES ($1, $2, 'owner', $3)
-         ON CONFLICT (email) DO NOTHING`,
-        [email, fullName, hash]
-      )
-    }
-  }
+  const log = (msg: string) => console.info(msg)
+  await runMigrations(pool, { log })
+  await ensureSeed(pool, surveyJson, { isProd: process.env.NODE_ENV === 'production', log })
 }
 
 export async function ensureDbReady(): Promise<void> {
   if (!global.__mtsInitPromise) {
-    global.__mtsInitPromise = runBootstrap().catch((err) => {
+    global.__mtsInitPromise = bootstrap().catch((err) => {
       global.__mtsInitPromise = undefined
       throw err
     })
@@ -113,7 +48,23 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
   return getPool().query<T>(text, params)
 }
 
-export async function rawPool(): Promise<Pool> {
+/** BEGIN/COMMIT/ROLLBACK ve bağlantı iadesini tek yerde yönetir. */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   await ensureDbReady()
-  return getPool()
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    const result = await fn(client)
+    await client.query('COMMIT')
+    return result
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw err
+  } finally {
+    client.release()
+  }
+}
+
+export function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505'
 }

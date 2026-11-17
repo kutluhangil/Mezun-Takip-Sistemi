@@ -28,8 +28,8 @@
    - Mezun `/giris` ekranına geçici dev-only **"Ankete Geç"** demo düğmesi eklendi.
 3. **15 Kasım 2026 (Gündüz):**
    - **Görseller tamamlandı:**
-     - Kullanıcının eklediği bina görseli `public/brand/fbu-campus.png` olarak taşınıp adlandırıldı ve ana sayfa (`src/components/landing/LandingClient.tsx`) sağ hero kartındaki yer tutucu daire SVG'nin yerine konuldu.
-     - `docs/CODEX-GORSEL-PROMPTLARI.md` hazırlandı; Codex tarafından 6 şeffaf `.webp` gravür (`thanks.webp`, `ornament.webp`, `seal.webp`, `admin.webp`, `empty.webp`, `offline.webp`) `public/art/` altına üretildi (ham PNG'ler `.gitignore` kapsamındaki `assets-src/illustrations/` içinde).
+     - (2026-11-17'de kaldırıldı) Bina görseli yerine ana sayfada `hero` gravürü kullanılıyor.
+     - Görsel prompt'ları artık `docs/GEMINI-GORSEL-PROMPTLARI.md` içinde; Codex tarafından 6 şeffaf `.webp` gravür (`thanks.webp`, `ornament.webp`, `seal.webp`, `admin.webp`, `empty.webp`, `offline.webp`) `public/art/` altına üretildi (ham PNG'ler `.gitignore` kapsamındaki `assets-src/illustrations/` içinde).
      - `src/components/ui/Art.tsx` içinde tüm 6 görsel aktif edildi; `src/app/not-found.tsx` ve admin boş durum görselleri bağlandı. Canlı `next start` üzerinde ekran görüntüleriyle (`/` hero + ornament + `#141413` footer `seal` + `/olmayan-sayfa-404`) doğrulandı.
    - **Yayın altyapısı Vercel + Neon olarak güncellendi:**
      - Supabase (yer darlığı) ve alan adı gerektiren `macmini-server` Cloudflare Tunnel yerine **Vercel + Neon PostgreSQL** seçildi.
@@ -64,7 +64,6 @@
 
 ### Görseller
 - `public/brand/fbu-logo.png`: Navbar/rapor FBÜ logosu.
-- `public/brand/fbu-campus.png`: Ana sayfa sağ hero kartı bina illüstrasyonu.
 - `public/art/{thanks,ornament,seal,admin,empty,offline}.webp`: `Art.tsx` ile bağlanmış şeffaf gravür illüstrasyonlar.
 
 ---
